@@ -72,6 +72,33 @@ Samples:
 | PATCH  | `/api/samples/{id}` | Update / move (re-checks capacity + temperature) |
 | DELETE | `/api/samples/{id}` | Delete |
 
+Temperature simulation & monitoring:
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| POST   | `/api/simulation/start` | Start the simulator (body `{"interval_seconds": 5}`). Idempotent — never starts a duplicate loop |
+| POST   | `/api/simulation/stop` | Stop the simulator (safe when already stopped) |
+| GET    | `/api/simulation/status` | Running state, interval, tick count, active fault flags |
+| POST   | `/api/simulation/equipment/{id}/abnormal` | Toggle out-of-range readings (body `{"enabled": true}`) |
+| POST   | `/api/simulation/equipment/{id}/fail` | Toggle a simulated hardware failure (marks equipment `offline`, emits extreme readings) |
+| GET    | `/api/simulation/equipment/{id}/latest` | Most recent reading for an equipment |
+| GET    | `/api/simulation/equipment/{id}/history` | Recent readings, newest first (`?limit=` 1–1000, default 100) |
+
+### Simulation behaviour
+
+A single background daemon thread (a process-wide singleton) writes one
+`SensorReading` per equipment on each tick:
+
+- **normal** — a value near the middle of the equipment's range with small
+  drift, clamped to stay inside `[min_temperature, max_temperature]`.
+- **abnormal** — a value pushed above `max_temperature` or below
+  `min_temperature` to mimic a dangerous excursion.
+- **failed** — an extreme, clearly-broken value; the equipment is set to
+  `offline`.
+
+Starting twice does not spawn a second loop. The simulator is stopped
+automatically on application shutdown.
+
 ### Business rules
 
 - Available capacity (storage and slots) is computed automatically from the

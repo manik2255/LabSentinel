@@ -14,16 +14,23 @@ from app.crud.exceptions import DomainError
 from app.database import create_all_tables
 from app.routers import equipment as equipment_router
 from app.routers import sample as sample_router
+from app.routers import simulation as simulation_router
+from app.simulation import simulator
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Application lifespan handler.
 
-    On startup, ensure all database tables exist.
+    On startup, ensure all database tables exist. On shutdown, stop the
+    temperature simulator if it is running so no background thread is left
+    behind.
     """
     create_all_tables()
-    yield
+    try:
+        yield
+    finally:
+        simulator.stop()
 
 
 app = FastAPI(
@@ -64,6 +71,7 @@ async def domain_error_handler(_request: Request, exc: DomainError) -> JSONRespo
 # Feature routers
 app.include_router(equipment_router.router)
 app.include_router(sample_router.router)
+app.include_router(simulation_router.router)
 
 
 @app.get("/api/health", tags=["health"])
