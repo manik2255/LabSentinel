@@ -36,6 +36,7 @@ class IncidentSummary(BaseModel):
     rescue_plan_id: Optional[int] = None
     rescue_plan_status: str = "none"
     rescue_execution_id: Optional[int] = None
+    recovery_status: str = "pending"
     created_at: datetime
     updated_at: datetime
 
@@ -67,6 +68,27 @@ class IncidentDetail(BaseModel):
     # Rescue-plan execution (Phase 5C).
     rescue_execution_id: Optional[int] = None
     executed_at: Optional[datetime] = None
+
+    # Recovery verification & closure (Phase 5D).
+    recovery_status: str = "pending"
+    unrescued_acknowledged: bool = False
+    recovery_notes: Optional[str] = None
+    recovery_recorded_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def recovery_recorded(self) -> bool:
+        """Backend-authoritative flag: True only when the operator has recorded
+        a recovery outcome (not 'pending'). Transfer success alone never sets
+        this - it reflects an explicit operator confirmation."""
+        return self.recovery_status != "pending"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def closed(self) -> bool:
+        """Backend-authoritative flag: True only when the incident is closed."""
+        return self.status == "closed"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -111,6 +133,24 @@ class PlanApprovalRequest(BaseModel):
 class PlanRejectionRequest(BaseModel):
     """Options for rejecting an incident's rescue plan."""
 
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+
+class RecoveryRequest(BaseModel):
+    """Operator-confirmed recovery outcome for an executed rescue."""
+
+    # One of: "completed", "partial", "unresolved". Records what the operator
+    # actually confirmed; it is NOT an assertion that samples are viable.
+    outcome: str
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    # Must be True to close later when samples were left unrescued.
+    unrescued_acknowledged: bool = False
+
+
+class IncidentCloseRequest(BaseModel):
+    """Explicit confirmation required to close an incident."""
+
+    confirm: bool = False
     note: Optional[str] = Field(default=None, max_length=1000)
 
 

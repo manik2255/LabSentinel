@@ -18,6 +18,7 @@ from app.crud.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.incident import (
     ACTIVE_STATES,
     INCIDENT_ACKNOWLEDGED,
+    INCIDENT_CLOSED,
     INCIDENT_ESCALATED,
     INCIDENT_OPEN,
     PLAN_STATUS_APPROVED,
@@ -25,6 +26,10 @@ from app.models.incident import (
     PLAN_STATUS_NONE,
     PLAN_STATUS_PLANNED,
     PLAN_STATUS_REJECTED,
+    RECOVERY_COMPLETED,
+    RECOVERY_OUTCOMES,
+    RECOVERY_PARTIAL,
+    RECOVERY_PENDING,
     Incident,
     IncidentEvent,
 )
@@ -292,6 +297,10 @@ def generate_incident_plan(db: Session, incident_id: int) -> tuple[Incident, "ob
     from app.rescue import service as rescue_service
 
     incident = get_incident(db, incident_id)
+    if incident.status == INCIDENT_CLOSED:
+        raise ConflictError(
+            f"Incident {incident_id} is closed; no further rescue planning."
+        )
 
     # Source = the incident's equipment; backups = all other operational units.
     result, plan = rescue_service.generate_plan(
@@ -859,3 +868,185 @@ def get_incident_execution(db: Session, incident_id: int):
             f"Execution {incident.rescue_execution_id} not found."
         )
     return execution
+
+
+# ----------------------------------------------------------------------
+# Recovery verification & incident closure (Phase 5D)
+#
+# Recovery is the operator's confirmation of what actually happened after a
+# rescue execution. A successful *transfer* is NOT assumed to mean a sample is
+# safe or viable: the operator records the real outcome (completed / partial /
+# unresolved) plus any notes. An incident can only be closed after a recovery
+# outcome is recorded and the operator explicitly confirms it; if any samples
+# were left unrescued, the operator must acknowledge them first.
+# ----------------------------------------------------------------------
+def _execution_unrescued(db: Session, incident: Incident) -> list[dict]:
+    """Return the samples that were NOT transferred by the incident's execution.
+
+    Derived from the executed plan's ``unassigned`` list (samples the optimiser
+    could not place). Returns [] when there is no execution or nothing was left
+    behind. This is purely informational - it never asserts viability.
+    """
+    from app.models.rescue_execution import RescueExecution
+    from app.models.rescue_plan import RescuePlan
+
+    if incident.rescue_execution_id is None:
+        return []
+    execution = db.get(RescueExecution, incident.rescue_execution_id)
+    if execution is None:
+        return []
+    plan = db.get(RescuePlan, execution.plan_id)
+    if plan is None:
+        return []
+    return list(plan.plan.get("unassigned", []))
+
+
+def record_recovery(
+    db: Session,
+    incident_id: int,
+    *,
+    outcome: str,
+    notes: Optional[str] = None,
+    unrescued_acknowledged: bool = False,
+) -> Incident:
+    """Record the operator-confirmed recovery outcome for an incident.
+
+    Requires a recorded execution first. ``outcome`` must be one of
+    completed / partial / unresolved. This records only what the operator
+    confirms; it makes no assumption about sample viability. Re-recording is
+    allowed (the operator may update the outcome) up until the incident is
+    closed, and each recording is audited.
+    """
+    incident = get_incident(db, incident_id)
+
+    if incident.status == INCIDENT_CLOSED:
+        raise ConflictError(
+            f"Incident {incident_id} is closed; its recovery outcome is final."
+        )
+    if incident.rescue_execution_id is None or incident.executed_at is None:
+        raise ConflictError(
+            f"Incident {incident_id} has no recorded rescue execution; record "
+            f"recovery only after the rescue plan has been executed."
+        )
+    if outcome not in RECOVERY_OUTCOMES:
+        raise ValidationError(
+            f"Invalid recovery outcome '{outcome}'. Must be one of: "
+            f"{', '.join(RECOVERY_OUTCOMES)}."
+        )
+
+    unrescued = _execution_unrescued(db, incident)
+    # If the operator reports a full completion but samples were left behind,
+    # that is contradictory - guide them to 'partial' instead of silently
+    # accepting an over-optimistic outcome.
+    if outcome == RECOVERY_COMPLETED and unrescued:
+        raise ValidationError(
+            f"Cannot record 'completed': {len(unrescued)} sample(s) were not "
+            f"rescued by the execution. Use 'partial' (and acknowledge the "
+            f"unrescued samples) or 'unresolved'."
+        )
+
+    now = _utcnow()
+    incident.recovery_status = outcome
+    incident.recovery_notes = notes
+    incident.unrescued_acknowledged = bool(unrescued_acknowledged)
+    incident.recovery_recorded_at = now
+    incident.updated_at = now
+    db.add(incident)
+    db.flush()
+    _record_event(
+        db, incident,
+        event_type="recovery_recorded",
+        explanation=(
+            f"Operator recorded recovery outcome '{outcome}'"
+            + (f": {notes}" if notes else ".")
+        ),
+        detail={
+            "outcome": outcome,
+            "notes": notes,
+            "unrescued_count": len(unrescued),
+            "unrescued_samples": unrescued,
+            "unrescued_acknowledged": bool(unrescued_acknowledged),
+        },
+        commit=False,
+    )
+    db.commit()
+    db.refresh(incident)
+    return incident
+
+
+def close_incident(
+    db: Session,
+    incident_id: int,
+    *,
+    confirm: bool = False,
+    note: Optional[str] = None,
+) -> Incident:
+    """Close an incident after recovery has been recorded and confirmed.
+
+    Preconditions (each returns a clear error if unmet):
+      * the incident is not already closed (duplicate close -> 409),
+      * a rescue execution has been recorded,
+      * a recovery outcome has been recorded (not 'pending'),
+      * the operator explicitly confirms closure (``confirm=True``),
+      * if any samples were left unrescued, the operator must have
+        acknowledged them (via the recovery step's ``unrescued_acknowledged``).
+    """
+    incident = get_incident(db, incident_id)
+
+    if incident.status == INCIDENT_CLOSED:
+        raise ConflictError(f"Incident {incident_id} is already closed.")
+    if incident.rescue_execution_id is None or incident.executed_at is None:
+        raise ConflictError(
+            f"Incident {incident_id} cannot be closed before a rescue "
+            f"execution has been recorded."
+        )
+    if incident.recovery_status == RECOVERY_PENDING:
+        raise ConflictError(
+            f"Incident {incident_id} cannot be closed before a recovery "
+            f"outcome has been recorded."
+        )
+    if not confirm:
+        raise ValidationError(
+            "Closing an incident requires explicit confirmation "
+            "(confirm=true)."
+        )
+
+    unrescued = _execution_unrescued(db, incident)
+    if unrescued and not incident.unrescued_acknowledged:
+        raise ConflictError(
+            f"Incident {incident_id} has {len(unrescued)} unrescued sample(s) "
+            f"that must be acknowledged before closing. Re-record recovery "
+            f"with unrescued_acknowledged=true."
+        )
+
+    from_state = incident.status
+    now = _utcnow()
+    incident.status = INCIDENT_CLOSED
+    incident.closed_at = now
+    incident.updated_at = now
+    db.add(incident)
+    db.flush()
+    _record_event(
+        db, incident,
+        event_type="incident_closed",
+        explanation=(
+            note
+            or (
+                f"Incident closed by operator with recovery outcome "
+                f"'{incident.recovery_status}'"
+                + (f"; {len(unrescued)} unrescued sample(s) acknowledged."
+                   if unrescued else ".")
+            )
+        ),
+        detail={
+            "from_state": from_state,
+            "to_state": INCIDENT_CLOSED,
+            "recovery_status": incident.recovery_status,
+            "unrescued_count": len(unrescued),
+            "unrescued_acknowledged": incident.unrescued_acknowledged,
+        },
+        commit=False,
+    )
+    db.commit()
+    db.refresh(incident)
+    return incident

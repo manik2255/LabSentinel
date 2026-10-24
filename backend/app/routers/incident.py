@@ -13,11 +13,13 @@ from app.models.incident import ACTIVE_STATES
 from app.rescue.service import CONSTRAINTS_EXPLAINED
 from app.schemas.incident import (
     IncidentActionRequest,
+    IncidentCloseRequest,
     IncidentDetail,
     IncidentEventRead,
     IncidentSummary,
     PlanApprovalRequest,
     PlanRejectionRequest,
+    RecoveryRequest,
     RescueExecutionResponse,
 )
 from app.schemas.rescue import RescuePlanResponse
@@ -191,3 +193,43 @@ def get_incident_execution(
 ) -> RescueExecutionResponse:
     """Retrieve the execution result for an incident's rescue plan."""
     return crud.incident.get_incident_execution(db, incident_id)
+
+
+# ----------------------------------------------------------------------
+# Recovery verification & incident closure (Phase 5D)
+# ----------------------------------------------------------------------
+@router.post("/{incident_id}/recovery", response_model=IncidentDetail)
+def record_recovery(
+    incident_id: int,
+    payload: RecoveryRequest,
+    db: Session = Depends(get_db),
+) -> IncidentDetail:
+    """Record the operator-confirmed recovery outcome after a rescue execution.
+
+    ``outcome`` must be completed / partial / unresolved. This records only
+    what the operator confirms and makes no assumption about sample viability.
+    Requires a recorded execution first.
+    """
+    return crud.incident.record_recovery(
+        db, incident_id,
+        outcome=payload.outcome,
+        notes=payload.notes,
+        unrescued_acknowledged=payload.unrescued_acknowledged,
+    )
+
+
+@router.post("/{incident_id}/close", response_model=IncidentDetail)
+def close_incident(
+    incident_id: int,
+    payload: IncidentCloseRequest | None = None,
+    db: Session = Depends(get_db),
+) -> IncidentDetail:
+    """Close an incident after a recovery outcome has been recorded.
+
+    Requires explicit confirmation (`confirm=true`); any unrescued samples must
+    have been acknowledged during the recovery step. Closure is terminal.
+    """
+    req = payload or IncidentCloseRequest()
+    return crud.incident.close_incident(
+        db, incident_id, confirm=req.confirm, note=req.note
+    )

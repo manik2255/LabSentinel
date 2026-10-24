@@ -165,6 +165,8 @@ Incident management & audit trail (Phase 5):
 | POST   | `/api/incidents/{id}/plan/reject` | Reject the plan; a new one must be generated |
 | POST   | `/api/incidents/{id}/plan/execute` | Execute an approved plan (simulated transfer); revalidates then moves samples atomically |
 | GET    | `/api/incidents/{id}/plan/execution` | Retrieve the execution result (success or failure) |
+| POST   | `/api/incidents/{id}/recovery` | Record the operator-confirmed recovery outcome (`{"outcome": "completed\|partial\|unresolved", "notes": ..., "unrescued_acknowledged": bool}`) |
+| POST   | `/api/incidents/{id}/close` | Close the incident after recovery is recorded (`{"confirm": true, "note": ...}`) |
 
 ### Incident behaviour
 
@@ -235,7 +237,38 @@ and is written defensively:
   (`execution_succeeded` / `execution_failed`). Failures are durably recorded
   even though the API returns an error.
 
-Recovery verification and incident closure remain deferred to later phases.
+### Recovery verification & incident closure (Phase 5D)
+
+After a rescue plan has been **executed**, an operator records the real-world
+recovery outcome via `POST /api/incidents/{id}/recovery`:
+
+- `outcome` is one of **completed**, **partial**, or **unresolved**. This
+  records only what the operator confirmed - a successful *transfer* is never
+  assumed to mean a sample is safe or viable.
+- `completed` is rejected if the execution left any sample unrescued (use
+  `partial` or `unresolved` instead).
+- `notes` capture problems/observations; `unrescued_acknowledged` records that
+  the operator accepts the samples left behind. Recovery may be re-recorded
+  (updated) until the incident is closed.
+
+An incident is then closed via `POST /api/incidents/{id}/close`, which is
+terminal (`status` becomes `closed`). Closure is refused unless:
+
+1. a rescue execution has been recorded,
+2. a recovery outcome has been recorded (not `pending`),
+3. the operator explicitly confirms (`confirm=true`), and
+4. any unrescued samples have been acknowledged.
+
+A closed incident accepts no further lifecycle, planning, or recovery actions.
+`GET /api/incidents/{id}` exposes backend-authoritative `recovery_recorded` and
+`closed` flags, and `recovery_status` / `closed_at` / `recovery_recorded_at`,
+so the frontend relies on backend state rather than optimistic UI state. Every
+recovery recording and closure is written to the incident audit trail
+(`recovery_recorded`, `incident_closed`).
+
+This completes the end-to-end workflow: equipment failure detection -> alert ->
+incident -> rescue plan -> approval -> execution -> recovery verification ->
+closure.
 
 ### Rescue planning behaviour
 
@@ -337,13 +370,17 @@ the SQLite database (`labsentinel.db`) and all tables.
 
 ## Scope
 
-Implemented so far: equipment & sample management, temperature simulation &
-monitoring, Isolation-Forest anomaly detection with explainable risk levels
-and alerting (Phase 3), MILP-based emergency sample rescue planning (Phase 4),
-and incident management with a full audit trail (Phase 5). Rescue planning
-produces proposals only; plan *execution* (moving samples), incident closure,
-rescue approval, and recovery verification are intentionally not implemented
-yet.
+The backend implements the **complete workflow**: equipment & sample
+management, temperature simulation & monitoring, Isolation-Forest anomaly
+detection with explainable risk and alerting (Phase 3), MILP-based rescue
+planning (Phase 4), incident management with a full audit trail (Phase 5),
+human rescue-plan approval (Phase 5B), safe simulated rescue execution
+(Phase 5C), and operator recovery verification + incident closure (Phase 5D).
+
+Execution performs a *simulated* transfer (it moves samples in the database);
+there is no physical hardware actuation, and recovery outcomes reflect only
+what the operator confirms - a successful transfer is never assumed to mean a
+sample is safe or viable.
 
 ## Tests
 

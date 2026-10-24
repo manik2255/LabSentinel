@@ -1700,6 +1700,119 @@
         }
       }
     },
+    "/api/incidents/{incident_id}/recovery": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Record Recovery",
+        "description": "Record the operator-confirmed recovery outcome after a rescue execution.\n\n``outcome`` must be completed / partial / unresolved. This records only\nwhat the operator confirms and makes no assumption about sample viability.\nRequires a recorded execution first.",
+        "operationId": "record_recovery_api_incidents__incident_id__recovery_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/close": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Close Incident",
+        "description": "Close an incident after a recovery outcome has been recorded.\n\nRequires explicit confirmation (`confirm=true`); any unrescued samples must\nhave been acknowledged during the recovery step. Closure is terminal.",
+        "operationId": "close_incident_api_incidents__incident_id__close_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/IncidentCloseRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -2200,6 +2313,30 @@
         "title": "IncidentActionRequest",
         "description": "Optional note supplied when acknowledging or escalating an incident."
       },
+      "IncidentCloseRequest": {
+        "properties": {
+          "confirm": {
+            "type": "boolean",
+            "title": "Confirm",
+            "default": false
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "IncidentCloseRequest",
+        "description": "Explicit confirmation required to close an incident."
+      },
       "IncidentDetail": {
         "properties": {
           "id": {
@@ -2337,6 +2474,63 @@
             ],
             "title": "Executed At"
           },
+          "recovery_status": {
+            "type": "string",
+            "title": "Recovery Status",
+            "default": "pending"
+          },
+          "unrescued_acknowledged": {
+            "type": "boolean",
+            "title": "Unrescued Acknowledged",
+            "default": false
+          },
+          "recovery_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Notes"
+          },
+          "recovery_recorded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Recorded At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "recovery_recorded": {
+            "type": "boolean",
+            "title": "Recovery Recorded",
+            "description": "Backend-authoritative flag: True only when the operator has recorded\na recovery outcome (not 'pending'). Transfer success alone never sets\nthis - it reflects an explicit operator confirmation.",
+            "readOnly": true
+          },
+          "closed": {
+            "type": "boolean",
+            "title": "Closed",
+            "description": "Backend-authoritative flag: True only when the incident is closed.",
+            "readOnly": true
+          },
           "approval_recorded": {
             "type": "boolean",
             "title": "Approval Recorded",
@@ -2360,6 +2554,8 @@
           "summary",
           "created_at",
           "updated_at",
+          "recovery_recorded",
+          "closed",
           "approval_recorded",
           "execution_recorded"
         ],
@@ -2477,6 +2673,11 @@
             ],
             "title": "Rescue Execution Id"
           },
+          "recovery_status": {
+            "type": "string",
+            "title": "Recovery Status",
+            "default": "pending"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2544,6 +2745,37 @@
         "type": "object",
         "title": "PlanRejectionRequest",
         "description": "Options for rejecting an incident's rescue plan."
+      },
+      "RecoveryRequest": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "unrescued_acknowledged": {
+            "type": "boolean",
+            "title": "Unrescued Acknowledged",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "RecoveryRequest",
+        "description": "Operator-confirmed recovery outcome for an executed rescue."
       },
       "RescueExecutionResponse": {
         "properties": {

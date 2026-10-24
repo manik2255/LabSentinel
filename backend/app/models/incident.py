@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
@@ -36,14 +37,25 @@ if TYPE_CHECKING:
     from app.models.equipment import Equipment
 
 
-# Lifecycle states supported in this phase.
+# Lifecycle states.
 INCIDENT_OPEN = "open"
 INCIDENT_ACKNOWLEDGED = "acknowledged"
 INCIDENT_ESCALATED = "escalated"
+INCIDENT_CLOSED = "closed"  # terminal (Phase 5D: after recovery is confirmed)
 
-# States in which an incident is considered "active" (not terminal). Nothing
-# in this phase is terminal yet; closure arrives in a later phase.
+# States in which an incident is considered "active" (not terminal). ``closed``
+# is the only terminal state.
 ACTIVE_STATES = (INCIDENT_OPEN, INCIDENT_ACKNOWLEDGED, INCIDENT_ESCALATED)
+
+# --- Recovery outcome (Phase 5D) -------------------------------------
+# An operator-confirmed verdict on the rescue, recorded only after an execution
+# exists. Transfer success is NOT assumed to mean the sample is safe/viable -
+# the operator records what was actually confirmed.
+RECOVERY_PENDING = "pending"        # no recovery outcome recorded yet
+RECOVERY_COMPLETED = "completed"    # operator confirms the rescue fully succeeded
+RECOVERY_PARTIAL = "partial"        # some samples rescued, some not
+RECOVERY_UNRESOLVED = "unresolved"  # problems remain / outcome not confirmed good
+RECOVERY_OUTCOMES = (RECOVERY_COMPLETED, RECOVERY_PARTIAL, RECOVERY_UNRESOLVED)
 
 # Rescue-plan approval status (Phase 5B). This is an *orthogonal* dimension to
 # the incident lifecycle above: an incident may be open/acknowledged/escalated
@@ -136,6 +148,24 @@ class Incident(Base):
         nullable=True, index=True,
     )
     executed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # --- Recovery verification & closure (Phase 5D) --------------------
+    # Operator-confirmed recovery outcome. Orthogonal to the lifecycle
+    # ``status`` until closure. Defaults to "pending" (nothing confirmed yet).
+    recovery_status: Mapped[str] = mapped_column(
+        String, nullable=False, default=RECOVERY_PENDING
+    )
+    # Count of samples the operator acknowledged as NOT rescued (if any).
+    unrescued_acknowledged: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    recovery_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    recovery_recorded_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    closed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
