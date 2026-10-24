@@ -114,3 +114,25 @@ Commands run from `frontend/`:
 NOT VERIFIED:
 - Full WCAG conformance (needs manual AT testing); the confirm dialog has focus-on-open but not a full focus-trap.
 - Cross-browser beyond Chromium (only Chromium installed).
+
+## Pass 3 — Safety, backend integration, and release (2026-10-24)
+
+- [x] 20. Demo safety: every state-changing demo operation is limited to demo-owned records (`src/domain/demoScope.ts`). Reset demo deletes nothing; Remove demo data needs a confirmation and deletes demo records only; fault injection is disabled for non-demo units.
+- [x] 21. Test isolation: Playwright (ports 8078/3000) and `scripts/verify-e2e.mjs` (port 8079) start their own backend on a disposable SQLite database and never touch `backend/labsentinel.db`.
+- [x] 22. Correctness: naive backend timestamps treated as UTC; stale-only telemetry is a warning; a shared clock refreshes ages; one active incident per unit with a re-arm latch; partial rescues cannot pass recovery verification.
+- [x] 23. Backend integration: the console reads `/openapi.json`. In backend mode it shows Isolation Forest risk and backend incidents with acknowledge, MILP plan, approve (partial plans need explicit acknowledgment), reject/regenerate, atomic execute, recovery (completed/partial/unresolved), close, and the audit trail. Browser-side detection is off in this mode. Approval and execution are disabled for plans whose source or destination is outside the demo lab.
+- [x] 24. HCI and accessibility: step tracker with the next step and its action together; evidence split into observed, derived, and not known; contrast fixes; skip link; per-page titles; named switches; dialogs that take focus and close on Escape; layouts that collapse on narrow screens.
+- [x] 25. Release: merged backend work from `main`; resolved the conflict with `8b5f925` using the `ours` strategy (reasons in the `2b49a00` commit message and PR #2).
+
+### Pass 3 verification record
+
+- `npx tsc --noEmit`: clean.
+- `npm test`: 13 files, 96 tests passed.
+- `npm run build`: succeeds.
+- `npx playwright test`: 3/3 (Chromium) against the real backend on a disposable database, covering setup through closure, no new incident after closure, unrelated inventory unchanged, axe serious/critical violations = 0, and no horizontal overflow at 390 px.
+- `python -m pytest` (backend): 95 passed.
+- `node scripts/verify-e2e.mjs`: 20/20 against the merged backend.
+
+NOT VERIFIED: full WCAG 2.2 AA conformance (only automated axe checks were run, no screen-reader testing); browsers other than Chromium.
+
+Known limitations: no authentication; escalation, alerts, and the incident report are in the API but not the UI; closing an incident while the unit's recent readings are still abnormal lets the backend open a new one.
