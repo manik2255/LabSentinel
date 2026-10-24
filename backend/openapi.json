@@ -1,0 +1,3304 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LabSentinel API",
+    "description": "Backend for the LabSentinel laboratory equipment monitoring and emergency sample rescue planning system.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/equipment": {
+      "get": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "List Equipment",
+        "description": "List all equipment.",
+        "operationId": "list_equipment_api_equipment_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EquipmentRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Equipment Api Equipment Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "Create Equipment",
+        "description": "Create a new piece of equipment.",
+        "operationId": "create_equipment_api_equipment_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquipmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/equipment/{equipment_id}": {
+      "get": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "Get Equipment",
+        "description": "Retrieve a single piece of equipment, including derived capacity.",
+        "operationId": "get_equipment_api_equipment__equipment_id__get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquipmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "Update Equipment",
+        "description": "Partially update a piece of equipment.",
+        "operationId": "update_equipment_api_equipment__equipment_id__patch",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquipmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "Delete Equipment",
+        "description": "Delete a piece of equipment (only if it holds no samples).",
+        "operationId": "delete_equipment_api_equipment__equipment_id__delete",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/samples": {
+      "get": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "List Samples",
+        "description": "List all samples, optionally filtered by equipment.",
+        "operationId": "list_samples_api_samples_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SampleRead"
+                  },
+                  "title": "Response List Samples Api Samples Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "Create Sample",
+        "description": "Create a new sample, validating capacity and temperature compatibility.",
+        "operationId": "create_sample_api_samples_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SampleCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/samples/{sample_id}": {
+      "get": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "Get Sample",
+        "description": "Retrieve a single sample.",
+        "operationId": "get_sample_api_samples__sample_id__get",
+        "parameters": [
+          {
+            "name": "sample_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Sample Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "Update Sample",
+        "description": "Update or move a sample, re-validating capacity and temperature.",
+        "operationId": "update_sample_api_samples__sample_id__patch",
+        "parameters": [
+          {
+            "name": "sample_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Sample Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SampleUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "Delete Sample",
+        "description": "Delete a sample.",
+        "operationId": "delete_sample_api_samples__sample_id__delete",
+        "parameters": [
+          {
+            "name": "sample_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Sample Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/start": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Start Simulation",
+        "description": "Start the temperature simulator.\n\nIdempotent: if the simulator is already running, the existing loop is kept\n(no duplicate process is created) and its current status is returned.",
+        "operationId": "start_simulation_api_simulation_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SimulationStartRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/stop": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Stop Simulation",
+        "description": "Stop the temperature simulator. Safe to call when already stopped.",
+        "operationId": "stop_simulation_api_simulation_stop_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/status": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Simulation Status",
+        "description": "Return the current simulator status.",
+        "operationId": "simulation_status_api_simulation_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/equipment/{equipment_id}/abnormal": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Set Abnormal",
+        "description": "Enable/disable abnormal (out-of-range) temperatures for an equipment.",
+        "operationId": "set_abnormal_api_simulation_equipment__equipment_id__abnormal_post",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EquipmentModeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/equipment/{equipment_id}/fail": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Set Failed",
+        "description": "Enable/disable a simulated hardware failure for an equipment.",
+        "operationId": "set_failed_api_simulation_equipment__equipment_id__fail_post",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EquipmentModeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/equipment/{equipment_id}/latest": {
+      "get": {
+        "tags": [
+          "simulation",
+          "monitoring"
+        ],
+        "summary": "Latest Reading",
+        "description": "Return the most recent temperature reading for an equipment.",
+        "operationId": "latest_reading_api_simulation_equipment__equipment_id__latest_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorReadingRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulation/equipment/{equipment_id}/history": {
+      "get": {
+        "tags": [
+          "simulation",
+          "monitoring"
+        ],
+        "summary": "Reading History",
+        "description": "Return recent temperature readings for an equipment (newest first).",
+        "operationId": "reading_history_api_simulation_equipment__equipment_id__history_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SensorReadingRead"
+                  },
+                  "title": "Response Reading History Api Simulation Equipment  Equipment Id  History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/detection/equipment/{equipment_id}/risk": {
+      "get": {
+        "tags": [
+          "detection"
+        ],
+        "summary": "Equipment Risk",
+        "description": "Compute the current anomaly risk for a piece of equipment.\n\nBy default this is a read-only assessment. Pass ``raise_alert=true`` to\nalso create or refresh an alert when risk is medium or above.",
+        "operationId": "equipment_risk_api_detection_equipment__equipment_id__risk_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Equipment Id"
+            }
+          },
+          {
+            "name": "raise_alert",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "If true, create/update an alert when risk is elevated.",
+              "default": false,
+              "title": "Raise Alert"
+            },
+            "description": "If true, create/update an alert when risk is elevated."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/detection/alerts": {
+      "get": {
+        "tags": [
+          "detection",
+          "alerts"
+        ],
+        "summary": "Active Alerts",
+        "description": "List active (unresolved) alerts, optionally filtered by equipment.",
+        "operationId": "active_alerts_api_detection_alerts_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertRead"
+                  },
+                  "title": "Response Active Alerts Api Detection Alerts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/detection/alerts/history": {
+      "get": {
+        "tags": [
+          "detection",
+          "alerts"
+        ],
+        "summary": "Alert History",
+        "description": "List alert history (resolved and active), newest first.",
+        "operationId": "alert_history_api_detection_alerts_history_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertRead"
+                  },
+                  "title": "Response Alert History Api Detection Alerts History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/detection/alerts/{alert_id}/resolve": {
+      "post": {
+        "tags": [
+          "detection",
+          "alerts"
+        ],
+        "summary": "Resolve Alert",
+        "description": "Resolve an active alert.",
+        "operationId": "resolve_alert_api_detection_alerts__alert_id__resolve_post",
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Alert Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rescue/plan": {
+      "post": {
+        "tags": [
+          "rescue"
+        ],
+        "summary": "Generate Rescue Plan",
+        "description": "Generate a rescue plan.\n\nRead-only with respect to inventory: this computes and (by default) stores\na *proposal*; it never moves samples. Omit the body to auto-detect unsafe\nequipment and use all operational equipment as backups.",
+        "operationId": "generate_rescue_plan_api_rescue_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RescuePlanRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescuePlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rescue/plans": {
+      "get": {
+        "tags": [
+          "rescue"
+        ],
+        "summary": "List Rescue Plans",
+        "description": "List stored rescue plans, newest first.",
+        "operationId": "list_rescue_plans_api_rescue_plans_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RescuePlanSummary"
+                  },
+                  "title": "Response List Rescue Plans Api Rescue Plans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rescue/plans/{plan_id}": {
+      "get": {
+        "tags": [
+          "rescue"
+        ],
+        "summary": "Get Rescue Plan",
+        "description": "Retrieve a stored rescue plan by id.",
+        "operationId": "get_rescue_plan_api_rescue_plans__plan_id__get",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescuePlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "List Incidents",
+        "description": "List incidents, newest first, with optional filters.",
+        "operationId": "list_incidents_api_incidents_get",
+        "parameters": [
+          {
+            "name": "equipment_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by lifecycle state.",
+              "title": "Status"
+            },
+            "description": "Filter by lifecycle state."
+          },
+          {
+            "name": "active_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Active Only"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentSummary"
+                  },
+                  "title": "Response List Incidents Api Incidents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Get Incident",
+        "description": "Retrieve full incident detail.",
+        "operationId": "get_incident_api_incidents__incident_id__get",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/events": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Incident Events",
+        "description": "Retrieve an incident's audit trail (oldest first).",
+        "operationId": "incident_events_api_incidents__incident_id__events_get",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentEventRead"
+                  },
+                  "title": "Response Incident Events Api Incidents  Incident Id  Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/acknowledge": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Acknowledge Incident",
+        "description": "Acknowledge an open incident (open -> acknowledged).",
+        "operationId": "acknowledge_incident_api_incidents__incident_id__acknowledge_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/IncidentActionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/escalate": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Escalate Incident",
+        "description": "Escalate an open or acknowledged incident (-> escalated).\n\nEscalation is an auditable action and does NOT block rescue planning.",
+        "operationId": "escalate_incident_api_incidents__incident_id__escalate_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/IncidentActionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/plan": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Generate Incident Plan",
+        "description": "Generate (or regenerate) a rescue plan for an incident.\n\nRead-only with respect to inventory. Associates the plan with the incident\nand sets its review status to 'planned'. Regenerating supersedes any prior\nplan and resets review status.",
+        "operationId": "generate_incident_plan_api_incidents__incident_id__plan_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescuePlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Get Incident Plan",
+        "description": "Retrieve the rescue plan currently associated with an incident.",
+        "operationId": "get_incident_plan_api_incidents__incident_id__plan_get",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescuePlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/plan/approve": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Approve Incident Plan",
+        "description": "Approve the incident's rescue plan after revalidation.\n\nFull approval requires a feasible plan; partial plans require\n``acknowledge_unrescued=true``. The plan is revalidated against current\ninventory and approval is refused if anything changed. Approval never moves\nsamples or modifies inventory.",
+        "operationId": "approve_incident_plan_api_incidents__incident_id__plan_approve_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PlanApprovalRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/plan/reject": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Reject Incident Plan",
+        "description": "Reject the incident's rescue plan. A new plan must then be generated.",
+        "operationId": "reject_incident_plan_api_incidents__incident_id__plan_reject_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PlanRejectionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/plan/execute": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Execute Incident Plan",
+        "description": "Execute an incident's APPROVED rescue plan (simulated sample transfer).\n\nRevalidates the approved assignments against current inventory, then moves\nthe approved samples atomically in one transaction. On any problem nothing\nis moved and a clear error is returned. Does not perform recovery\nverification or close the incident.",
+        "operationId": "execute_incident_plan_api_incidents__incident_id__plan_execute_post",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescueExecutionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/incidents/{incident_id}/plan/execution": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Get Incident Execution",
+        "description": "Retrieve the execution result for an incident's rescue plan.",
+        "operationId": "get_incident_execution_api_incidents__incident_id__plan_execution_get",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescueExecutionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "description": "Simple health check endpoint.\n\nReturns a static payload indicating the service is running.",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlertRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "alert_type": {
+            "type": "string",
+            "title": "Alert Type"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "equipment_id",
+          "alert_type",
+          "severity",
+          "risk_level",
+          "message",
+          "timestamp",
+          "resolved"
+        ],
+        "title": "AlertRead",
+        "description": "An alert returned to clients."
+      },
+      "AssignmentOut": {
+        "properties": {
+          "sample_id": {
+            "type": "integer",
+            "title": "Sample Id"
+          },
+          "sample_name": {
+            "type": "string",
+            "title": "Sample Name"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "equipment_name": {
+            "type": "string",
+            "title": "Equipment Name"
+          },
+          "storage_space": {
+            "type": "integer",
+            "title": "Storage Space"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample_id",
+          "sample_name",
+          "equipment_id",
+          "equipment_name",
+          "storage_space",
+          "priority"
+        ],
+        "title": "AssignmentOut"
+      },
+      "EquipmentCapacityOut": {
+        "properties": {
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "equipment_name": {
+            "type": "string",
+            "title": "Equipment Name"
+          },
+          "storage_capacity_before": {
+            "type": "integer",
+            "title": "Storage Capacity Before"
+          },
+          "storage_used_by_plan": {
+            "type": "integer",
+            "title": "Storage Used By Plan"
+          },
+          "storage_remaining": {
+            "type": "integer",
+            "title": "Storage Remaining"
+          },
+          "slots_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slots Before"
+          },
+          "slots_used_by_plan": {
+            "type": "integer",
+            "title": "Slots Used By Plan"
+          },
+          "slots_remaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slots Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "equipment_id",
+          "equipment_name",
+          "storage_capacity_before",
+          "storage_used_by_plan",
+          "storage_remaining",
+          "slots_used_by_plan"
+        ],
+        "title": "EquipmentCapacityOut"
+      },
+      "EquipmentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Type"
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Location"
+          },
+          "min_temperature": {
+            "type": "number",
+            "title": "Min Temperature"
+          },
+          "max_temperature": {
+            "type": "number",
+            "title": "Max Temperature"
+          },
+          "storage_capacity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Storage Capacity"
+          },
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Status",
+            "default": "operational"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "location",
+          "min_temperature",
+          "max_temperature",
+          "storage_capacity"
+        ],
+        "title": "EquipmentCreate",
+        "description": "Payload for creating equipment."
+      },
+      "EquipmentModeRequest": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "EquipmentModeRequest",
+        "description": "Toggle an abnormal-temperature or failure condition for an equipment.\n\n``enabled`` turns the condition on (True) or off (False)."
+      },
+      "EquipmentRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Type"
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Location"
+          },
+          "min_temperature": {
+            "type": "number",
+            "title": "Min Temperature"
+          },
+          "max_temperature": {
+            "type": "number",
+            "title": "Max Temperature"
+          },
+          "storage_capacity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Storage Capacity"
+          },
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Status",
+            "default": "operational"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "used_storage": {
+            "type": "integer",
+            "title": "Used Storage"
+          },
+          "available_storage": {
+            "type": "integer",
+            "title": "Available Storage"
+          },
+          "used_slots": {
+            "type": "integer",
+            "title": "Used Slots"
+          },
+          "available_slots": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Slots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "location",
+          "min_temperature",
+          "max_temperature",
+          "storage_capacity",
+          "id",
+          "used_storage",
+          "available_storage",
+          "used_slots",
+          "available_slots"
+        ],
+        "title": "EquipmentRead",
+        "description": "Equipment representation returned to clients, including derived capacity."
+      },
+      "EquipmentUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "min_temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Temperature"
+          },
+          "max_temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Temperature"
+          },
+          "storage_capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Capacity"
+          },
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "EquipmentUpdate",
+        "description": "Payload for updating equipment. All fields optional (partial update)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IncidentActionRequest": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "IncidentActionRequest",
+        "description": "Optional note supplied when acknowledging or escalating an incident."
+      },
+      "IncidentDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "alert_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Id"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "risk_severity": {
+            "type": "string",
+            "title": "Risk Severity"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "affected_samples": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Affected Samples",
+            "default": []
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Evidence",
+            "default": {}
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "escalated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalated At"
+          },
+          "rescue_plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescue Plan Id"
+          },
+          "rescue_plan_status": {
+            "type": "string",
+            "title": "Rescue Plan Status",
+            "default": "none"
+          },
+          "plan_reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Reviewed At"
+          },
+          "rescue_execution_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescue Execution Id"
+          },
+          "executed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed At"
+          },
+          "approval_recorded": {
+            "type": "boolean",
+            "title": "Approval Recorded",
+            "description": "Backend-authoritative flag: True only when this incident's rescue\nplan has a *real, backend-recorded* approval (approved or already\nexecuted, with a recorded review timestamp).\n\nThe frontend must use this - not a local/optimistic UI state - to\ndecide whether an approval actually exists. A frontend-only \"simulated\napproval\" that never reached the backend will leave this False, and the\nexecute endpoint likewise refuses to run without this backend state.",
+            "readOnly": true
+          },
+          "execution_recorded": {
+            "type": "boolean",
+            "title": "Execution Recorded",
+            "description": "Backend-authoritative flag: True only when a successful execution is\nrecorded for this incident (samples actually moved in the database).",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "equipment_id",
+          "trigger",
+          "risk_severity",
+          "status",
+          "summary",
+          "created_at",
+          "updated_at",
+          "approval_recorded",
+          "execution_recorded"
+        ],
+        "title": "IncidentDetail",
+        "description": "Full incident detail, including affected samples and evidence."
+      },
+      "IncidentEventRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "incident_id": {
+            "type": "integer",
+            "title": "Incident Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "incident_id",
+          "event_type",
+          "explanation",
+          "timestamp"
+        ],
+        "title": "IncidentEventRead",
+        "description": "One audit-trail entry."
+      },
+      "IncidentSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "alert_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Id"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "risk_severity": {
+            "type": "string",
+            "title": "Risk Severity"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "rescue_plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescue Plan Id"
+          },
+          "rescue_plan_status": {
+            "type": "string",
+            "title": "Rescue Plan Status",
+            "default": "none"
+          },
+          "rescue_execution_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescue Execution Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "equipment_id",
+          "trigger",
+          "risk_severity",
+          "status",
+          "summary",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "IncidentSummary",
+        "description": "Compact incident row for listing."
+      },
+      "PlanApprovalRequest": {
+        "properties": {
+          "acknowledge_unrescued": {
+            "type": "boolean",
+            "title": "Acknowledge Unrescued",
+            "default": false
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "PlanApprovalRequest",
+        "description": "Options for approving an incident's rescue plan."
+      },
+      "PlanRejectionRequest": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "PlanRejectionRequest",
+        "description": "Options for rejecting an incident's rescue plan."
+      },
+      "RescueExecutionResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "incident_id": {
+            "type": "integer",
+            "title": "Incident Id"
+          },
+          "plan_id": {
+            "type": "integer",
+            "title": "Plan Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "transferred_sample_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Transferred Sample Ids",
+            "default": []
+          },
+          "transfers": {
+            "items": {
+              "$ref": "#/components/schemas/TransferOut"
+            },
+            "type": "array",
+            "title": "Transfers",
+            "default": []
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "problems": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problems"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "incident_id",
+          "plan_id",
+          "status",
+          "explanation",
+          "created_at"
+        ],
+        "title": "RescueExecutionResponse",
+        "description": "The result of executing an approved rescue plan."
+      },
+      "RescuePlanRequest": {
+        "properties": {
+          "source_equipment_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Equipment Ids",
+            "description": "Equipment to evacuate. Omit to auto-detect unsafe equipment."
+          },
+          "backup_equipment_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Equipment Ids",
+            "description": "Allowed backup equipment. Omit to use all operational equipment."
+          },
+          "persist": {
+            "type": "boolean",
+            "title": "Persist",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RescuePlanRequest",
+        "description": "Request to generate a rescue plan.\n\nAll fields are optional so the common case (\"rescue everything affected by\nunsafe equipment, using all other healthy equipment as backups\") needs no\nbody. Explicit lists let a caller scope the plan."
+      },
+      "RescuePlanResponse": {
+        "properties": {
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "feasible": {
+            "type": "boolean",
+            "title": "Feasible"
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial"
+          },
+          "rescued_count": {
+            "type": "integer",
+            "title": "Rescued Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "objective_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective Value"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentOut"
+            },
+            "type": "array",
+            "title": "Assignments"
+          },
+          "unassigned": {
+            "items": {
+              "$ref": "#/components/schemas/UnassignedOut"
+            },
+            "type": "array",
+            "title": "Unassigned"
+          },
+          "remaining_capacity": {
+            "items": {
+              "$ref": "#/components/schemas/EquipmentCapacityOut"
+            },
+            "type": "array",
+            "title": "Remaining Capacity"
+          },
+          "constraints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Constraints",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "feasible",
+          "partial",
+          "rescued_count",
+          "total_count",
+          "method",
+          "explanation",
+          "assignments",
+          "unassigned",
+          "remaining_capacity"
+        ],
+        "title": "RescuePlanResponse",
+        "description": "Structured rescue plan returned to clients."
+      },
+      "RescuePlanSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "feasible": {
+            "type": "boolean",
+            "title": "Feasible"
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial"
+          },
+          "rescued_count": {
+            "type": "integer",
+            "title": "Rescued Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "feasible",
+          "partial",
+          "rescued_count",
+          "total_count",
+          "method"
+        ],
+        "title": "RescuePlanSummary",
+        "description": "Compact row for listing stored plans."
+      },
+      "RiskResponse": {
+        "properties": {
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "anomaly_score": {
+            "type": "number",
+            "title": "Anomaly Score"
+          },
+          "is_anomaly": {
+            "type": "boolean",
+            "title": "Is Anomaly"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons",
+            "default": []
+          },
+          "endangered_samples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Endangered Samples",
+            "default": []
+          },
+          "reading_count": {
+            "type": "integer",
+            "title": "Reading Count"
+          },
+          "insufficient_data": {
+            "type": "boolean",
+            "title": "Insufficient Data"
+          },
+          "alert_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Id"
+          },
+          "alert_created": {
+            "type": "boolean",
+            "title": "Alert Created",
+            "default": false
+          },
+          "incident_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incident Id"
+          },
+          "incident_created": {
+            "type": "boolean",
+            "title": "Incident Created",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "equipment_id",
+          "risk_level",
+          "anomaly_score",
+          "is_anomaly",
+          "reading_count",
+          "insufficient_data"
+        ],
+        "title": "RiskResponse",
+        "description": "The current risk assessment for a piece of equipment."
+      },
+      "SampleCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Equipment Id"
+          },
+          "min_temperature": {
+            "type": "number",
+            "title": "Min Temperature"
+          },
+          "max_temperature": {
+            "type": "number",
+            "title": "Max Temperature"
+          },
+          "storage_space": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Storage Space",
+            "default": 1
+          },
+          "priority": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Priority",
+            "default": "medium"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "equipment_id",
+          "min_temperature",
+          "max_temperature"
+        ],
+        "title": "SampleCreate",
+        "description": "Payload for creating a sample."
+      },
+      "SampleRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Equipment Id"
+          },
+          "min_temperature": {
+            "type": "number",
+            "title": "Min Temperature"
+          },
+          "max_temperature": {
+            "type": "number",
+            "title": "Max Temperature"
+          },
+          "storage_space": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Storage Space",
+            "default": 1
+          },
+          "priority": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Priority",
+            "default": "medium"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "equipment_id",
+          "min_temperature",
+          "max_temperature",
+          "id"
+        ],
+        "title": "SampleRead",
+        "description": "Sample representation returned to clients."
+      },
+      "SampleUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "equipment_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equipment Id"
+          },
+          "min_temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Temperature"
+          },
+          "max_temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Temperature"
+          },
+          "storage_space": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Space"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "title": "SampleUpdate",
+        "description": "Payload for updating a sample. All fields optional (partial update).\n\nSetting ``equipment_id`` moves the sample to a different piece of\nequipment (subject to capacity and temperature checks)."
+      },
+      "SensorReadingRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "equipment_id",
+          "temperature",
+          "timestamp"
+        ],
+        "title": "SensorReadingRead",
+        "description": "A temperature reading returned to clients."
+      },
+      "SimulationStartRequest": {
+        "properties": {
+          "interval_seconds": {
+            "type": "number",
+            "maximum": 3600.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Interval Seconds",
+            "default": 5.0
+          }
+        },
+        "type": "object",
+        "title": "SimulationStartRequest",
+        "description": "Options for starting the temperature simulator."
+      },
+      "SimulationStatus": {
+        "properties": {
+          "running": {
+            "type": "boolean",
+            "title": "Running"
+          },
+          "interval_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Seconds"
+          },
+          "ticks": {
+            "type": "integer",
+            "title": "Ticks",
+            "default": 0
+          },
+          "abnormal_equipment_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Abnormal Equipment Ids"
+          },
+          "failed_equipment_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Failed Equipment Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "running"
+        ],
+        "title": "SimulationStatus",
+        "description": "Current state of the background simulator."
+      },
+      "TransferOut": {
+        "properties": {
+          "sample_id": {
+            "type": "integer",
+            "title": "Sample Id"
+          },
+          "sample_name": {
+            "type": "string",
+            "title": "Sample Name"
+          },
+          "from_equipment_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Equipment Id"
+          },
+          "from_equipment_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Equipment Name"
+          },
+          "to_equipment_id": {
+            "type": "integer",
+            "title": "To Equipment Id"
+          },
+          "to_equipment_name": {
+            "type": "string",
+            "title": "To Equipment Name"
+          },
+          "storage_space": {
+            "type": "integer",
+            "title": "Storage Space"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample_id",
+          "sample_name",
+          "to_equipment_id",
+          "to_equipment_name",
+          "storage_space"
+        ],
+        "title": "TransferOut",
+        "description": "One simulated sample transfer within an execution."
+      },
+      "UnassignedOut": {
+        "properties": {
+          "sample_id": {
+            "type": "integer",
+            "title": "Sample Id"
+          },
+          "sample_name": {
+            "type": "string",
+            "title": "Sample Name"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "candidate_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Candidate Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample_id",
+          "sample_name",
+          "priority",
+          "reason"
+        ],
+        "title": "UnassignedOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

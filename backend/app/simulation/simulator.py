@@ -45,6 +45,11 @@ class TemperatureSimulator:
         self._abnormal: set[int] = set()
         self._failed: set[int] = set()
 
+        # Per-equipment last normal reading, so normal mode behaves like a
+        # smooth (autocorrelated) random walk rather than independent jumps -
+        # this matches how real equipment temperature actually behaves.
+        self._last_normal: dict[int, float] = {}
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
@@ -95,6 +100,7 @@ class TemperatureSimulator:
             # fault-injection flags silently carry over across runs.
             self._abnormal.clear()
             self._failed.clear()
+            self._last_normal.clear()
             self._ticks = 0
         return True
 
@@ -151,6 +157,7 @@ class TemperatureSimulator:
         # Each tick uses its own session; import here to avoid a circular
         # import at module load time.
         from app.crud.sensor_reading import record_reading
+        from app.detection.service import evaluate_and_alert
 
         db = SessionLocal()
         try:
@@ -161,6 +168,10 @@ class TemperatureSimulator:
                     abnormal=eq.id in abnormal,
                     failed=eq.id in failed,
                 )
+                # Reset the walk baseline for faulted/abnormal equipment so
+                # that returning to normal starts cleanly from the centre.
+                if eq.id in abnormal or eq.id in failed:
+                    self._last_normal.pop(eq.id, None)
                 record_reading(db, eq.id, temperature)
 
                 # A failed equipment is marked offline to reflect the fault.
@@ -168,17 +179,25 @@ class TemperatureSimulator:
                     eq.status = "offline"
                     db.add(eq)
                     db.commit()
+
+                # Run anomaly detection on the fresh reading and raise/refresh
+                # alerts automatically. Isolated per-equipment so one failure
+                # cannot stop readings for the others.
+                try:
+                    evaluate_and_alert(db, eq.id)
+                except Exception:  # noqa: BLE001
+                    pass
         finally:
             db.close()
 
-    @staticmethod
     def _generate_temperature(
-        equipment: Equipment, *, abnormal: bool, failed: bool
+        self, equipment: Equipment, *, abnormal: bool, failed: bool
     ) -> float:
         """Produce a temperature value for one equipment according to its mode."""
         lo = equipment.min_temperature
         hi = equipment.max_temperature
         span = max(hi - lo, 1.0)
+        half = span / 2.0
 
         if failed:
             # Simulate a sensor/hardware failure: a wild, clearly broken value
@@ -191,11 +210,23 @@ class TemperatureSimulator:
                 return round(hi + random.uniform(0.5, span), 2)
             return round(lo - random.uniform(0.5, span), 2)
 
-        # Normal: centre of the range plus small drift, clamped to the range.
+        # Normal: a gentle random walk around the centre. Real equipment
+        # temperature is autocorrelated, so each reading steps a small amount
+        # from the previous one (not an independent jump) and is softly pulled
+        # back toward the centre. This keeps tick-to-tick rate-of-change and
+        # variability low - i.e. genuinely normal behaviour.
         centre = (lo + hi) / 2.0
-        drift = random.uniform(-span * 0.25, span * 0.25)
-        value = centre + drift
+        prev = self._last_normal.get(equipment.id, centre)
+
+        step = random.uniform(-0.05 * half, 0.05 * half)   # small drift
+        pull = (centre - prev) * 0.2                        # mean reversion
+        value = prev + step + pull
+
+        # Keep comfortably inside the range (within ~70% of half-range of
+        # centre) so normal operation never rides the edges.
+        value = max(centre - 0.7 * half, min(centre + 0.7 * half, value))
         value = max(lo, min(hi, value))
+        self._last_normal[equipment.id] = value
         return round(value, 2)
 
 
