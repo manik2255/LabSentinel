@@ -4,7 +4,6 @@ import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
 import { IncidentsPage } from "./pages/IncidentsPage";
 import { ConnectionIndicator } from "./components/ConnectionIndicator";
 import { SimulatorIndicator } from "./components/SimulatorIndicator";
-import { LabWideDetection } from "./components/IncidentDetector";
 import { useIncidentStore } from "./store/incidentStore";
 import "./app.css";
 
@@ -26,7 +25,6 @@ export default function App() {
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
-      <LabWideDetection />
       <aside className="app-nav">
         <div className="app-brand">
           <span className="app-brand-mark" aria-hidden>
@@ -47,8 +45,8 @@ export default function App() {
           </NavLink>
         </nav>
         <div className="app-nav-foot muted">
-          Telemetry comes from the backend simulator. Assessment, rescue planning, and incident
-          tracking run in this browser.
+          Telemetry and risk assessment come from the backend. Rescue planning and incident
+          tracking still run in this browser.
         </div>
       </aside>
 

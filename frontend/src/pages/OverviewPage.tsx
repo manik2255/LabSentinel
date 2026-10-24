@@ -77,8 +77,8 @@ export function OverviewPage() {
 
       <p className="notice notice-sim">
         <strong>Demonstration environment.</strong> Temperatures come from the backend simulator; no
-        physical sensors are connected. Assessment, rescue planning, and incident tracking run in
-        this browser.
+        physical sensors are connected. Risk assessment comes from the backend; rescue planning and
+        incident tracking still run in this browser.
       </p>
 
       {confirmRemove ? (

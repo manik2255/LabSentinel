@@ -14,6 +14,7 @@ import * as api from "../api/endpoints";
 import type {
   EquipmentModeRequest,
   EquipmentRead,
+  RiskResponse,
   SampleRead,
   SampleUpdate,
   SensorReadingRead,
@@ -29,6 +30,7 @@ export const queryKeys = {
   latest: (id: number) => ["latest", id] as const,
   history: (id: number, limit: number) => ["history", id, limit] as const,
   simStatus: ["simStatus"] as const,
+  risk: (id: number) => ["risk", id] as const,
 };
 
 export function useHealth(): UseQueryResult<{ status: string; service: string }> {
@@ -102,6 +104,23 @@ export function useSimulationStatus(): UseQueryResult<SimulationStatus> {
     queryKey: queryKeys.simStatus,
     queryFn: api.getSimulationStatus,
     refetchInterval: POLL.simulationStatus,
+  });
+}
+
+/**
+ * Backend anomaly-risk assessment for one equipment (Isolation Forest +
+ * explainable rules). Read-only: never passes raise_alert, so displaying risk
+ * cannot create alerts or incidents server-side. Polls with the latest reading
+ * so the shown risk tracks fresh telemetry.
+ */
+export function useEquipmentRisk(
+  id: number | null,
+): UseQueryResult<RiskResponse> {
+  return useQuery({
+    queryKey: queryKeys.risk(id ?? -1),
+    queryFn: () => api.getEquipmentRisk(id as number),
+    enabled: id != null,
+    refetchInterval: POLL.latestReading,
   });
 }
 
