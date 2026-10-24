@@ -167,7 +167,8 @@ function IncidentBody({
   let controls: ReactNode = null;
   switch (stage) {
     case "acknowledge":
-      guidance = "Acknowledge to take ownership. The backend records who acted and when.";
+      guidance =
+        "Acknowledge to take ownership. The backend timestamps it in the audit trail; there are no user accounts, so it does not record who.";
       controls = (
         <button className="btn btn-primary" disabled={busy} onClick={() => run(() => api.acknowledgeIncident(id))}>
           Acknowledge

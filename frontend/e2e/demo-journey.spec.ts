@@ -92,6 +92,7 @@ test("backend-powered incident: ML risk, MILP plan, approval, execution, recover
   // 1. Healthy lab.
   await page.goto("/");
   await expect(page.getByText("Backend online")).toBeVisible({ timeout: LONG });
+  await expect(page.getByText(/ML risk assessment, incident tracking, rescue planning, and rescue execution are handled by the backend/)).toBeVisible({ timeout: LONG });
   await page.getByRole("button", { name: "Set up demo" }).first().click();
   await expect(page.getByText(/Created 4 demo units and 5 demo samples/)).toBeVisible({ timeout: LONG });
   await expect(page.getByText(/All \d+ unit\(s\) with fresh readings are within/)).toBeVisible({ timeout: LONG });

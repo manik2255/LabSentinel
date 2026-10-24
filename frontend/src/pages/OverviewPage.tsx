@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
-import { latestReadingQuery, useEquipmentList, useSamples } from "../hooks/queries";
+import {
+  latestReadingQuery,
+  useCapabilities,
+  useEquipmentList,
+  useSamples,
+} from "../hooks/queries";
 import { EquipmentCard } from "../components/EquipmentCard";
 import { EmptyState, QueryBoundary } from "../components/QueryState";
 import { useDemoControls } from "../hooks/useDemoControls";
@@ -14,6 +19,7 @@ import { ArrowRightIcon } from "../components/Icons";
 
 export function OverviewPage() {
   useDocumentTitle("Laboratory Overview");
+  const caps = useCapabilities();
   const equipment = useEquipmentList();
   const samples = useSamples();
   const demo = useDemoControls();
@@ -77,8 +83,12 @@ export function OverviewPage() {
 
       <p className="notice notice-sim">
         <strong>Demonstration environment.</strong> Temperatures come from the backend simulator; no
-        physical sensors are connected. Assessment, rescue planning, and incident tracking run in
-        this browser.
+        physical sensors are connected.{" "}
+        {caps.data?.incidents
+          ? "ML risk assessment, incident tracking, rescue planning, and rescue execution are handled by the backend."
+          : caps.data
+            ? "This backend has no incident API, so assessment, rescue planning, and incident tracking run in this browser and are labeled as browser-derived."
+            : null}
       </p>
 
       {confirmRemove ? (
