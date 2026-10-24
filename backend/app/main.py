@@ -12,7 +12,11 @@ from fastapi.responses import JSONResponse
 
 from app.crud.exceptions import DomainError
 from app.database import create_all_tables
+from app.detection import detector
+from app.routers import detection as detection_router
 from app.routers import equipment as equipment_router
+from app.routers import incident as incident_router
+from app.routers import rescue as rescue_router
 from app.routers import sample as sample_router
 from app.routers import simulation as simulation_router
 from app.simulation import simulator
@@ -22,11 +26,18 @@ from app.simulation import simulator
 async def lifespan(_app: FastAPI):
     """Application lifespan handler.
 
-    On startup, ensure all database tables exist. On shutdown, stop the
+    On startup, ensure all database tables exist and that the anomaly
+    detection model is loaded (or freshly trained). On shutdown, stop the
     temperature simulator if it is running so no background thread is left
     behind.
     """
     create_all_tables()
+    # Load a persisted model or train and save one, so detection is always
+    # ready. Best-effort: a failure here must not block app startup.
+    try:
+        detector.ensure_ready()
+    except Exception:  # noqa: BLE001
+        pass
     try:
         yield
     finally:
@@ -72,6 +83,9 @@ async def domain_error_handler(_request: Request, exc: DomainError) -> JSONRespo
 app.include_router(equipment_router.router)
 app.include_router(sample_router.router)
 app.include_router(simulation_router.router)
+app.include_router(detection_router.router)
+app.include_router(rescue_router.router)
+app.include_router(incident_router.router)
 
 
 @app.get("/api/health", tags=["health"])

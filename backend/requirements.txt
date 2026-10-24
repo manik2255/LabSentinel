@@ -2,3 +2,10 @@ fastapi>=0.118.0
 uvicorn[standard]>=0.37.0
 sqlalchemy>=2.0.43
 pydantic>=2.12.0
+scikit-learn>=1.5.0
+numpy>=2.1.0
+joblib>=1.4.0
+
+# Test dependencies
+pytest>=8.0.0
+httpx>=0.28.0
