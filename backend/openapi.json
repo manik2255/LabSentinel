@@ -1290,6 +1290,49 @@
         }
       }
     },
+    "/api/incidents/{incident_id}/report": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Incident Report",
+        "description": "Read-only incident report aggregated from existing data.\n\nSummarises what happened: the failed equipment, sample counts (affected /\nrescued / unrescued), where samples were transferred, why some could not be\nrescued, the rescue-plan status, the final recovery outcome, and a timeline\nof audit events. Works at any incident stage and never modifies data.",
+        "operationId": "incident_report_api_incidents__incident_id__report_get",
+        "parameters": [
+          {
+            "name": "incident_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Incident Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/incidents/{incident_id}/acknowledge": {
       "post": {
         "tags": [
@@ -2609,6 +2652,128 @@
         "title": "IncidentEventRead",
         "description": "One audit-trail entry."
       },
+      "IncidentReport": {
+        "properties": {
+          "incident_id": {
+            "type": "integer",
+            "title": "Incident Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "risk_severity": {
+            "type": "string",
+            "title": "Risk Severity"
+          },
+          "generated_from": {
+            "type": "string",
+            "title": "Generated From"
+          },
+          "equipment": {
+            "$ref": "#/components/schemas/ReportEquipment"
+          },
+          "sample_counts": {
+            "$ref": "#/components/schemas/ReportSampleCounts"
+          },
+          "transfers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Transfers",
+            "default": []
+          },
+          "rescued_sample_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Rescued Sample Ids",
+            "default": []
+          },
+          "unrescued_samples": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Unrescued Samples",
+            "default": []
+          },
+          "rescue_plan_status": {
+            "type": "string",
+            "title": "Rescue Plan Status"
+          },
+          "rescue_plan": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescue Plan"
+          },
+          "execution": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution"
+          },
+          "recovery": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Recovery"
+          },
+          "timestamps": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Timestamps"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEvent"
+            },
+            "type": "array",
+            "title": "Timeline",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "incident_id",
+          "status",
+          "summary",
+          "trigger",
+          "risk_severity",
+          "generated_from",
+          "equipment",
+          "sample_counts",
+          "rescue_plan_status",
+          "recovery",
+          "timestamps"
+        ],
+        "title": "IncidentReport",
+        "description": "Read-only aggregated report for a single incident.\n\nBuilt entirely from stored data (incident, rescue plan, execution, audit\nevents). Sections that have not happened yet are null/empty rather than\nassumed."
+      },
       "IncidentSummary": {
         "properties": {
           "id": {
@@ -2776,6 +2941,91 @@
         ],
         "title": "RecoveryRequest",
         "description": "Operator-confirmed recovery outcome for an executed rescue."
+      },
+      "ReportEquipment": {
+        "properties": {
+          "equipment_id": {
+            "type": "integer",
+            "title": "Equipment Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "equipment_id"
+        ],
+        "title": "ReportEquipment"
+      },
+      "ReportSampleCounts": {
+        "properties": {
+          "affected": {
+            "type": "integer",
+            "title": "Affected"
+          },
+          "rescued": {
+            "type": "integer",
+            "title": "Rescued"
+          },
+          "unrescued": {
+            "type": "integer",
+            "title": "Unrescued"
+          },
+          "rescue_executed": {
+            "type": "boolean",
+            "title": "Rescue Executed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "affected",
+          "rescued",
+          "unrescued",
+          "rescue_executed"
+        ],
+        "title": "ReportSampleCounts"
       },
       "RescueExecutionResponse": {
         "properties": {
@@ -3398,6 +3648,37 @@
         ],
         "title": "SimulationStatus",
         "description": "Current state of the background simulator."
+      },
+      "TimelineEvent": {
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_type",
+          "explanation"
+        ],
+        "title": "TimelineEvent",
+        "description": "One entry in the incident report timeline (from the audit trail)."
       },
       "TransferOut": {
         "properties": {
