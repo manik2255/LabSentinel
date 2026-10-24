@@ -154,6 +154,59 @@ class IncidentCloseRequest(BaseModel):
     note: Optional[str] = Field(default=None, max_length=1000)
 
 
+class TimelineEvent(BaseModel):
+    """One entry in the incident report timeline (from the audit trail)."""
+
+    event_type: str
+    explanation: str
+    timestamp: Optional[datetime] = None
+
+
+class ReportEquipment(BaseModel):
+    equipment_id: int
+    name: Optional[str] = None
+    type: Optional[str] = None
+    location: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ReportSampleCounts(BaseModel):
+    affected: int
+    rescued: int
+    unrescued: int
+    rescue_executed: bool
+
+
+class IncidentReport(BaseModel):
+    """Read-only aggregated report for a single incident.
+
+    Built entirely from stored data (incident, rescue plan, execution, audit
+    events). Sections that have not happened yet are null/empty rather than
+    assumed.
+    """
+
+    incident_id: int
+    status: str
+    summary: str
+    trigger: str
+    risk_severity: str
+    generated_from: str
+
+    equipment: ReportEquipment
+    sample_counts: ReportSampleCounts
+
+    transfers: list[dict[str, Any]] = []
+    rescued_sample_ids: list[int] = []
+    unrescued_samples: list[dict[str, Any]] = []
+
+    rescue_plan_status: str
+    rescue_plan: Optional[dict[str, Any]] = None
+    execution: Optional[dict[str, Any]] = None
+    recovery: dict[str, Any]
+    timestamps: dict[str, Any]
+    timeline: list[TimelineEvent] = []
+
+
 class TransferOut(BaseModel):
     """One simulated sample transfer within an execution."""
 

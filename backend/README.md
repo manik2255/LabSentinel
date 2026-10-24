@@ -157,6 +157,7 @@ Incident management & audit trail (Phase 5):
 | GET    | `/api/incidents` | List incidents (`?equipment_id=`, `?status=`, `?active_only=`, `?limit=`) |
 | GET    | `/api/incidents/{id}` | Full incident detail (severity, affected samples, evidence, timestamps) |
 | GET    | `/api/incidents/{id}/events` | Audit trail for an incident (oldest first) |
+| GET    | `/api/incidents/{id}/report` | Read-only aggregated incident report (works at any stage) |
 | POST   | `/api/incidents/{id}/acknowledge` | Acknowledge an open incident (optional `{"note": ...}`) |
 | POST   | `/api/incidents/{id}/escalate` | Escalate an open/acknowledged incident |
 | POST   | `/api/incidents/{id}/plan` | Generate/regenerate a rescue plan for the incident (read-only) |
@@ -269,6 +270,23 @@ recovery recording and closure is written to the incident audit trail
 This completes the end-to-end workflow: equipment failure detection -> alert ->
 incident -> rescue plan -> approval -> execution -> recovery verification ->
 closure.
+
+### Incident report (Phase 5E)
+
+`GET /api/incidents/{id}/report` returns a **read-only** JSON report aggregated
+entirely from existing data (the incident row, its rescue plan, the execution
+record, and the audit events) - it never writes or modifies anything, and adds
+no new tables. It works at **any** incident stage and makes no assumptions: if
+no plan has been generated or executed, those sections are `null`/empty rather
+than fabricated.
+
+The report includes: the failed equipment, honest sample counts (`affected` /
+`rescued` / `unrescued`, where `rescued` counts only samples actually moved by
+a successful execution - never inferred from a plan), where samples were
+transferred, the optimiser-recorded reasons some samples could not be rescued
+(capacity / temperature / status), the rescue-plan status, the execution
+outcome, the final recovery outcome (if recorded), and a chronological
+`timeline` built from the audit trail.
 
 ### Rescue planning behaviour
 

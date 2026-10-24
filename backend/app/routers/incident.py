@@ -16,6 +16,7 @@ from app.schemas.incident import (
     IncidentCloseRequest,
     IncidentDetail,
     IncidentEventRead,
+    IncidentReport,
     IncidentSummary,
     PlanApprovalRequest,
     PlanRejectionRequest,
@@ -62,6 +63,22 @@ def incident_events(
 ) -> list[IncidentEventRead]:
     """Retrieve an incident's audit trail (oldest first)."""
     return crud.incident.list_events(db, incident_id)
+
+
+@router.get("/{incident_id}/report", response_model=IncidentReport)
+def incident_report(
+    incident_id: int, db: Session = Depends(get_db)
+) -> IncidentReport:
+    """Read-only incident report aggregated from existing data.
+
+    Summarises what happened: the failed equipment, sample counts (affected /
+    rescued / unrescued), where samples were transferred, why some could not be
+    rescued, the rescue-plan status, the final recovery outcome, and a timeline
+    of audit events. Works at any incident stage and never modifies data.
+    """
+    from app.reporting import build_incident_report
+
+    return build_incident_report(db, incident_id)
 
 
 @router.post("/{incident_id}/acknowledge", response_model=IncidentDetail)
