@@ -1,0 +1,1 @@
+"""LabSentinel backend application package."""
