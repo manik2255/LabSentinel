@@ -6,15 +6,27 @@ emergency sample rescue. React 18 + TypeScript (strict) + Vite + TanStack Query
 
 ## What is real and what is simulated
 
+The console reads the backend's `/openapi.json` at startup and picks a mode.
+
+**Backend mode** (current backend):
+
 | Capability | Source |
 | --- | --- |
-| Equipment, samples, capacity, placement rules | Backend API (real) |
-| Temperature telemetry | Backend **simulator** (no physical sensors) |
-| Fault injection (abnormal / hardware failure) | Backend simulator |
-| Health classification and assessment | Rule-based, computed in the browser. No ML model is exposed by the backend. |
-| Rescue plan | Greedy heuristic in the browser (sound, not provably optimal) |
-| Rescue execution | Real `PATCH /api/samples/{id}` moves, demo-owned records only |
-| Incident lifecycle and history | Browser state, saved to this browser's localStorage only |
+| Equipment, samples, capacity | Backend API |
+| Temperature telemetry, fault injection | Backend **simulator** (no physical sensors) |
+| ML risk on the telemetry page | `GET /api/detection/equipment/{id}/risk` (Isolation Forest + rules, read-only) |
+| Incidents, evidence, audit trail | `/api/incidents…` (persistent, opened by backend detection) |
+| Rescue plan | `POST /api/incidents/{id}/plan` (backend MILP optimizer) |
+| Approval, execution, recovery, closure | Backend endpoints; execution is one atomic transaction |
+
+Browser-side incident detection is switched off in this mode, so there is never
+a duplicate browser incident. The rule-based check stays on the telemetry page,
+labeled as computed in the browser. Approval and execution are disabled when a
+backend plan would move samples into equipment outside the demo lab.
+
+**Fallback mode** (backend without incident API): rule-based assessment, a
+greedy browser rescue planner, and incidents stored in this browser's
+localStorage, all labeled as browser-derived.
 
 ## Pages
 

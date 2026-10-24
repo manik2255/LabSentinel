@@ -6,11 +6,27 @@ import { ConnectionIndicator } from "./components/ConnectionIndicator";
 import { SimulatorIndicator } from "./components/SimulatorIndicator";
 import { LabWideDetection } from "./components/IncidentDetector";
 import { useIncidentStore } from "./store/incidentStore";
+import { useBackendIncidents, useCapabilities } from "./hooks/queries";
 import "./app.css";
 
+/**
+ * Browser-side detection runs only when the backend has no incident API, so
+ * a backend that owns incidents never gets a duplicate browser workflow.
+ */
+function DetectionOwner() {
+  const caps = useCapabilities();
+  if (!caps.data || caps.data.incidents) return null;
+  return <LabWideDetection />;
+}
+
 function IncidentNavBadge() {
+  const caps = useCapabilities();
+  const backend = caps.data?.incidents === true;
+  const backendIncidents = useBackendIncidents(backend);
   const { activeByEquipment } = useIncidentStore();
-  const count = activeByEquipment.size;
+  const count = backend
+    ? (backendIncidents.data ?? []).filter((i) => i.status !== "closed").length
+    : activeByEquipment.size;
   if (count === 0) return null;
   return (
     <span className="badge badge-critical" style={{ marginLeft: 8 }}>
@@ -26,7 +42,7 @@ export default function App() {
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
-      <LabWideDetection />
+      <DetectionOwner />
       <aside className="app-nav">
         <div className="app-brand">
           <span className="app-brand-mark" aria-hidden>
@@ -47,8 +63,8 @@ export default function App() {
           </NavLink>
         </nav>
         <div className="app-nav-foot muted">
-          Telemetry comes from the backend simulator. Assessment, rescue planning, and incident
-          tracking run in this browser.
+          Telemetry comes from the backend simulator. Risk, incidents, and rescue plans come from
+          the backend when it provides them; otherwise they run in this browser.
         </div>
       </aside>
 

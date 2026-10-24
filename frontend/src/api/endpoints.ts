@@ -5,10 +5,18 @@
 
 import { apiFetch, ApiError, NO_READINGS_YET, type NoReadingsYet } from "./client";
 import type {
+  BackendCapabilities,
+  BackendRescuePlan,
   EquipmentCreate,
   EquipmentModeRequest,
   EquipmentRead,
   EquipmentUpdate,
+  IncidentDetail,
+  IncidentEventRead,
+  IncidentSummary,
+  RecoveryOutcome,
+  RescueExecution,
+  RiskResponse,
   SampleCreate,
   SampleRead,
   SampleUpdate,
@@ -191,4 +199,93 @@ export async function getReadingHistory(
     throw new ApiError(502, "The backend returned malformed reading history.");
   }
   return raw.filter(isReading).map(normalizeReading);
+}
+
+// ---------------------------------------------------------------------------
+// Backend capabilities, ML risk, and incident lifecycle
+// ---------------------------------------------------------------------------
+
+const RISK_PATH = "/api/detection/equipment/{equipment_id}/risk";
+const INCIDENT_PATHS = [
+  "/api/incidents",
+  "/api/incidents/{incident_id}/plan/approve",
+  "/api/incidents/{incident_id}/plan/execute",
+  "/api/incidents/{incident_id}/recovery",
+  "/api/incidents/{incident_id}/close",
+];
+
+/**
+ * Reads the backend's live OpenAPI document to decide which features exist,
+ * so the console uses backend-authoritative incidents when they are available
+ * and falls back to its labeled browser-only workflow when they are not.
+ */
+export async function getCapabilities(): Promise<BackendCapabilities> {
+  const doc = await apiFetch<{ paths?: Record<string, unknown> } | undefined>("/openapi.json");
+  const paths = doc?.paths ?? {};
+  const has = (p: string) => Object.prototype.hasOwnProperty.call(paths, p);
+  return { risk: has(RISK_PATH), incidents: INCIDENT_PATHS.every(has) };
+}
+
+/** Read-only risk assessment (raise_alert=false): never creates alerts or incidents. */
+export function getRisk(equipmentId: number): Promise<RiskResponse> {
+  return apiFetch(`/api/detection/equipment/${equipmentId}/risk`);
+}
+
+export function listIncidents(limit = 200): Promise<IncidentSummary[]> {
+  return apiFetch(`/api/incidents?limit=${limit}`);
+}
+
+export function getIncident(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}`);
+}
+
+export function listIncidentEvents(id: number): Promise<IncidentEventRead[]> {
+  return apiFetch(`/api/incidents/${id}/events`);
+}
+
+export function acknowledgeIncident(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/acknowledge`, { method: "POST", body: {} });
+}
+
+/** Runs the backend MILP optimizer. Read-only with respect to inventory. */
+export function generateIncidentPlan(id: number): Promise<BackendRescuePlan> {
+  return apiFetch(`/api/incidents/${id}/plan`, { method: "POST" });
+}
+
+export function getIncidentPlan(id: number): Promise<BackendRescuePlan> {
+  return apiFetch(`/api/incidents/${id}/plan`);
+}
+
+export function approveIncidentPlan(
+  id: number,
+  acknowledgeUnrescued: boolean,
+): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/plan/approve`, {
+    method: "POST",
+    body: { acknowledge_unrescued: acknowledgeUnrescued },
+  });
+}
+
+export function rejectIncidentPlan(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/plan/reject`, { method: "POST", body: {} });
+}
+
+/** Backend revalidates and moves all approved samples in one transaction, or none. */
+export function executeIncidentPlan(id: number): Promise<RescueExecution> {
+  return apiFetch(`/api/incidents/${id}/plan/execute`, { method: "POST" });
+}
+
+export function getIncidentExecution(id: number): Promise<RescueExecution> {
+  return apiFetch(`/api/incidents/${id}/plan/execution`);
+}
+
+export function recordIncidentRecovery(
+  id: number,
+  body: { outcome: RecoveryOutcome; notes?: string; unrescued_acknowledged: boolean },
+): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/recovery`, { method: "POST", body });
+}
+
+export function closeIncident(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/close`, { method: "POST", body: { confirm: true } });
 }

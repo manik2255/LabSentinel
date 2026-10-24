@@ -110,3 +110,32 @@ export function demoInventory(
     otherSampleCount: samples.length - demoSamples.length,
   };
 }
+
+/**
+ * Scope check for a backend-generated plan. The backend optimizer considers
+ * every operational unit as a backup, so in a shared database a plan could
+ * move demo samples into unrelated equipment. This console only approves or
+ * executes plans whose source and every destination are demo units.
+ */
+export function checkBackendPlanScope(
+  source: EquipmentRead | undefined,
+  destinationIds: number[],
+  equipmentById: ReadonlyMap<number, EquipmentRead>,
+): ExecutionScope {
+  if (!isDemoEquipment(source)) {
+    return {
+      executable: false,
+      reason: `${source?.name ?? "This unit"} is outside the demo lab, so this console will not approve or execute its rescue.`,
+    };
+  }
+  const outside = Array.from(new Set(destinationIds))
+    .filter((id) => !isDemoEquipment(equipmentById.get(id)))
+    .map((id) => equipmentById.get(id)?.name ?? `equipment #${id}`);
+  if (outside.length > 0) {
+    return {
+      executable: false,
+      reason: `The plan moves samples into equipment outside the demo lab (${outside.join(", ")}). Approval is disabled here to protect that inventory; run the demo on an isolated database.`,
+    };
+  }
+  return { executable: true, reason: null };
+}

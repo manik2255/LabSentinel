@@ -1,4 +1,5 @@
 /** Small presentation helpers shared across components. */
+import { normalizeUtcTimestamp } from "../api/endpoints";
 
 export function formatTemp(n: number): string {
   return `${n.toFixed(1)}°C`;
@@ -23,6 +24,12 @@ export function formatClock(iso: string): string {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "—";
   return new Date(t).toLocaleTimeString();
+}
+
+/** Clock time for a backend timestamp (naive values are UTC). */
+export function formatBackendTime(ts: string | null | undefined): string {
+  if (!ts) return "—";
+  return formatClock(normalizeUtcTimestamp(ts));
 }
 
 /** Clamp a possibly-inconsistent capacity value to a safe, non-negative view. */

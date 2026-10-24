@@ -44,9 +44,23 @@ export function useDemoControls() {
     void qc.invalidateQueries({ queryKey: queryKeys.equipment });
     void qc.invalidateQueries({ queryKey: ["samples"] });
     void qc.invalidateQueries({ queryKey: queryKeys.simStatus });
-    void qc.invalidateQueries({ queryKey: ["latest"] });
-    void qc.invalidateQueries({ queryKey: ["history"] });
+    // Reset (not just invalidate) per-unit telemetry, risk, and incident data
+    // so no stale reading or phantom incident from before the operation is
+    // shown while refetching.
+    for (const key of ["latest", "history", "risk", "backendIncidents", "backendIncident"]) {
+      void qc.resetQueries({ queryKey: [key] });
+    }
   }, [qc]);
+
+  /** Backend incidents for the given units; empty when the backend has no incident API. */
+  const backendIncidentsFor = useCallback(async (ids: Set<number>) => {
+    try {
+      return (await api.listIncidents(1000)).filter((i) => ids.has(i.equipment_id));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return [];
+      throw err;
+    }
+  }, []);
 
   const run = useCallback(
     async (title: string, body: (actions: string[]) => Promise<void>) => {
@@ -175,11 +189,19 @@ export function useDemoControls() {
             ? "Simulator left running; readings return to normal on the next tick."
             : "Simulator is stopped; start it from the header to resume telemetry.",
         );
+        const open = (await backendIncidentsFor(demoIds)).filter((i) => i.status !== "closed");
+        if (open.length > 0) {
+          actions.push(
+            `${open.length} backend incident(s) on demo units are still open (#${open
+              .map((i) => i.id)
+              .join(", #")}). The backend keeps incident records; finish or close them in Incident Response.`,
+          );
+        }
         if (demo.otherEquipmentCount > 0) {
           actions.push(`${demo.otherEquipmentCount} non-demo unit(s) were not touched.`);
         }
       }),
-    [incidents, run],
+    [backendIncidentsFor, incidents, run],
   );
 
   const removeDemoData = useCallback(
@@ -192,6 +214,16 @@ export function useDemoControls() {
         ]);
         const demo = demoInventory(equipment, samples);
         const demoIds = new Set(demo.equipment.map((e) => e.id));
+
+        // Backend incident records reference equipment ids. Deleting those
+        // units would orphan the records, and SQLite can reuse the ids for
+        // newly seeded units, attaching old incidents to new equipment.
+        const linked = await backendIncidentsFor(demoIds);
+        if (linked.length > 0) {
+          throw new Error(
+            `${linked.length} backend incident record(s) reference demo units, so removal is disabled to keep the audit trail intact. Use Reset demo, or restart the backend with a fresh demo database.`,
+          );
+        }
 
         for (const id of status.abnormal_equipment_ids) {
           if (demoIds.has(id)) await api.setAbnormal(id, { enabled: false });
@@ -226,7 +258,7 @@ export function useDemoControls() {
           `${demo.otherEquipmentCount} non-demo unit(s) and ${demo.otherSampleCount} non-demo sample(s) were not touched.`,
         );
       }),
-    [incidents, run],
+    [backendIncidentsFor, incidents, run],
   );
 
   return { setUp, reset, removeDemoData, busy, report };

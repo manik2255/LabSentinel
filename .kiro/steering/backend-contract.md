@@ -3,96 +3,45 @@ inclusion: fileMatch
 fileMatchPattern: 'frontend/src/api/**'
 ---
 
-# Verified Backend Contract
+# Backend Contract (verified 2026-10-24 against backend/openapi.json, 31 paths)
 
-Verified against the live OpenAPI schema on 2026-10-24 (snapshot:
-`.kiro/specs/labsentinel-frontend/backend-openapi.snapshot.json`). All paths are
-prefixed by the API base URL. Error responses are `{ "detail": string }` with
-status `404` (not found), `409` (capacity / in-use conflict), or `422`
-(validation / temperature mismatch).
+Errors are `{ "detail": string }` (404 not found, 409 conflict/state, 422
+validation). Timestamps are naive ISO strings recorded in UTC (SQLite drops the
+offset); the frontend normalizes them in `src/api/endpoints.ts`.
 
-## Equipment
+## Inventory
+- `GET/POST /api/equipment`, `GET/PATCH/DELETE /api/equipment/{id}`
+- `GET/POST /api/samples` (`?equipment_id=`), `GET/PATCH/DELETE /api/samples/{id}`
+- Placement rule: destination range covers the sample range; enough free storage;
+  a free slot when `sample_limit` is set.
 
-- `GET /api/equipment` → `EquipmentRead[]`
-- `POST /api/equipment` (`EquipmentCreate`) → `EquipmentRead` (201)
-- `GET /api/equipment/{id}` → `EquipmentRead`
-- `PATCH /api/equipment/{id}` (`EquipmentUpdate`) → `EquipmentRead`
-- `DELETE /api/equipment/{id}` → 204 (409 if it still holds samples)
+## Simulation and telemetry
+- `POST /api/simulation/start|stop`, `GET /api/simulation/status`
+- `POST /api/simulation/equipment/{id}/abnormal|fail` (`{ enabled }`)
+- `GET /api/simulation/equipment/{id}/latest|history`
+- Each simulator tick runs detection and may create or refresh an incident.
+- Clearing the failure flag does not restore `status`; PATCH it to `operational`.
 
-`EquipmentRead`:
-```
-id: number
-name: string
-type: string
-location: string
-min_temperature: number
-max_temperature: number
-storage_capacity: number        // >= 0
-sample_limit: number | null     // null = unlimited slots
-status: string                  // operational | maintenance | offline | ...
-used_storage: number            // derived
-available_storage: number       // derived
-used_slots: number              // derived
-available_slots: number | null  // derived; null when sample_limit is null
-```
+## Detection (used by the UI)
+- `GET /api/detection/equipment/{id}/risk` → `risk_level` (low/medium/high/critical),
+  `anomaly_score` (0–1 logistic mapping of Isolation Forest output; not a
+  probability), `reasons[]`, `endangered_samples[]`, `reading_count` (window 10),
+  `insufficient_data` (< 3 readings). Read-only unless `raise_alert=true`.
+- Alerts: `GET /api/detection/alerts`, `/alerts/history`, `POST /alerts/{id}/resolve`
+  (not used by the UI).
 
-## Samples
-
-- `GET /api/samples?equipment_id=` → `SampleRead[]`
-- `POST /api/samples` (`SampleCreate`) → `SampleRead` (201)
-- `GET /api/samples/{id}` → `SampleRead`
-- `PATCH /api/samples/{id}` (`SampleUpdate`) → `SampleRead` (re-checks placement)
-- `DELETE /api/samples/{id}` → 204
-
-`SampleRead`:
-```
-id: number
-name: string
-equipment_id: number
-min_temperature: number
-max_temperature: number
-storage_space: number    // >= 1; also consumes exactly one slot
-priority: string         // low | medium | high | critical
-```
-
-Placement rule (enforced by backend on create/move): the target equipment's
-range must fully cover the sample's `[min_temperature, max_temperature]`, there
-must be enough `available_storage`, and a free slot when `sample_limit` is set.
-
-## Simulation & Monitoring
-
-- `POST /api/simulation/start` (`{ interval_seconds?: number }`, 0 < x ≤ 3600,
-  default 5) → `SimulationStatus` (idempotent)
-- `POST /api/simulation/stop` → `SimulationStatus`
-- `GET /api/simulation/status` → `SimulationStatus`
-- `POST /api/simulation/equipment/{id}/abnormal` (`{ enabled: boolean }`) →
-  `SimulationStatus` (404 if equipment missing)
-- `POST /api/simulation/equipment/{id}/fail` (`{ enabled: boolean }`) →
-  `SimulationStatus` (sets equipment `offline`, emits extreme readings)
-- `GET /api/simulation/equipment/{id}/latest` → `SensorReadingRead` (404 if no
-  readings yet)
-- `GET /api/simulation/equipment/{id}/history?limit=` (1–1000, default 100) →
-  `SensorReadingRead[]` (newest first)
-
-`SimulationStatus`:
-```
-running: boolean
-interval_seconds: number | null
-ticks: number
-abnormal_equipment_ids: number[]
-failed_equipment_ids: number[]
-```
-
-`SensorReadingRead`:
-```
-id: number
-equipment_id: number
-temperature: number
-timestamp: string   // ISO 8601, timezone-aware (UTC)
-```
-
-## Not available (do NOT call — these 404)
-
-No AI assessment, rescue planning, incident lifecycle, or alert endpoints
-exist. Any such behaviour in the frontend is client-side domain logic and must
-be labeled as locally derived.
+## Incidents (used by the UI)
+- `GET /api/incidents`, `GET /api/incidents/{id}`, `GET /api/incidents/{id}/events`
+- `POST /acknowledge` (open → acknowledged), `POST /escalate` (not in UI)
+- `POST /plan` (MILP, read-only), `GET /plan`, `POST /plan/approve`
+  (`acknowledge_unrescued` required for partial plans; refused if stale or
+  infeasible), `POST /plan/reject`
+- `POST /plan/execute` (approved plans only; atomic; concurrent duplicates get 409),
+  `GET /plan/execution`
+- `POST /recovery` (`outcome`: completed/partial/unresolved; `completed` refused
+  when samples were left unrescued; requires a recorded execution)
+- `POST /close` (`confirm: true`; requires recovery; unrescued samples must be acknowledged)
+- Flags on `IncidentDetail`: `approval_recorded`, `execution_recorded`,
+  `recovery_recorded`, `closed` — the UI derives every step from these.
+- One active incident per equipment. After closure, a still-abnormal unit gets a
+  new incident on its next reading.

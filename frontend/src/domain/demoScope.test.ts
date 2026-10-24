@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  checkBackendPlanScope,
   checkPlanScope,
   demoHomeEquipmentName,
   demoInventory,
@@ -129,5 +130,31 @@ describe("demoHomeEquipmentName", () => {
   it("maps a seed sample to its seeded equipment", () => {
     expect(demoHomeEquipmentName("Patient Plasma Lot P-101")).toBe("Ultra-Low Freezer A");
     expect(demoHomeEquipmentName("Unknown")).toBeNull();
+  });
+});
+
+describe("checkBackendPlanScope", () => {
+  const demoA = eq({ id: 1, status: "offline" });
+  const demoB = eq({ id: 2, name: "Ultra-Low Freezer B" });
+  const real = eq({ id: 3, name: "Teammate Freezer", location: "Building 4" });
+  const byId = new Map([
+    [1, demoA],
+    [2, demoB],
+    [3, real],
+  ]);
+
+  it("allows backend plans that stay inside the demo lab", () => {
+    expect(checkBackendPlanScope(demoA, [2, 2], byId)).toEqual({ executable: true, reason: null });
+  });
+
+  it("blocks backend plans that move samples into unrelated equipment", () => {
+    const scope = checkBackendPlanScope(demoA, [2, 3], byId);
+    expect(scope.executable).toBe(false);
+    expect(scope.reason).toMatch(/Teammate Freezer/);
+  });
+
+  it("blocks rescues for non-demo sources and unknown destinations", () => {
+    expect(checkBackendPlanScope(real, [2], byId).executable).toBe(false);
+    expect(checkBackendPlanScope(demoA, [99], byId).reason).toMatch(/equipment #99/);
   });
 });

@@ -156,3 +156,79 @@ export function useSampleMove() {
     },
   });
 }
+
+// --- Backend detection and incident lifecycle ---
+
+export const backendKeys = {
+  capabilities: ["capabilities"] as const,
+  risk: (id: number) => ["risk", id] as const,
+  incidents: ["backendIncidents"] as const,
+  incident: (id: number) => ["backendIncident", id] as const,
+  events: (id: number) => ["backendIncidentEvents", id] as const,
+  plan: (id: number, planId: number | null) => ["backendIncidentPlan", id, planId] as const,
+  execution: (id: number, execId: number | null) =>
+    ["backendIncidentExecution", id, execId] as const,
+};
+
+/** Which backend features exist, read once from the live OpenAPI document. */
+export function useCapabilities() {
+  return useQuery({
+    queryKey: backendKeys.capabilities,
+    queryFn: api.getCapabilities,
+    staleTime: Infinity,
+    retry: 2,
+  });
+}
+
+export function useRisk(id: number | null, enabled: boolean) {
+  return useQuery({
+    queryKey: backendKeys.risk(id ?? -1),
+    queryFn: () => api.getRisk(id as number),
+    enabled: enabled && id != null,
+    refetchInterval: POLL.latestReading,
+  });
+}
+
+export function useBackendIncidents(enabled: boolean) {
+  return useQuery({
+    queryKey: backendKeys.incidents,
+    queryFn: () => api.listIncidents(200),
+    enabled,
+    refetchInterval: POLL.latestReading,
+  });
+}
+
+export function useBackendIncident(id: number) {
+  return useQuery({
+    queryKey: backendKeys.incident(id),
+    queryFn: () => api.getIncident(id),
+    refetchInterval: (q) => (q.state.data?.closed ? false : POLL.latestReading),
+  });
+}
+
+export function useIncidentEvents(id: number, live: boolean) {
+  return useQuery({
+    queryKey: backendKeys.events(id),
+    queryFn: () => api.listIncidentEvents(id),
+    refetchInterval: live ? POLL.history : false,
+  });
+}
+
+/** A stored plan is immutable per plan id, so it is fetched once. */
+export function useIncidentPlan(id: number, planId: number | null) {
+  return useQuery({
+    queryKey: backendKeys.plan(id, planId),
+    queryFn: () => api.getIncidentPlan(id),
+    enabled: planId != null,
+    staleTime: Infinity,
+  });
+}
+
+export function useIncidentExecution(id: number, execId: number | null) {
+  return useQuery({
+    queryKey: backendKeys.execution(id, execId),
+    queryFn: () => api.getIncidentExecution(id),
+    enabled: execId != null,
+    staleTime: Infinity,
+  });
+}

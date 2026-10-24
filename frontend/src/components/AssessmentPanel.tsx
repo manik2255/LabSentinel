@@ -45,18 +45,20 @@ function KeyValues({ items }: { items: EvidenceItem[] }) {
 export function AssessmentPanel({
   assessment,
   headingLevel = 3,
+  title = "Incident Assessment",
 }: {
   assessment: Assessment;
   headingLevel?: Level;
+  title?: string;
 }) {
   return (
-    <section className="card section" aria-label="Incident assessment">
+    <section className="card section" aria-label={title}>
       <div
         className="row"
         style={{ justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap" }}
       >
         <div className="row" style={{ gap: "var(--space-2)" }}>
-          <Heading level={headingLevel}>Incident Assessment</Heading>
+          <Heading level={headingLevel}>{title}</Heading>
           <SeverityBadge level={assessment.severity} />
         </div>
         <span className="derived-tag" title={assessment.method}>

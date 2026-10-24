@@ -1,5 +1,11 @@
 import { Link, useParams } from "react-router-dom";
-import { useEquipmentList, useLatestReading, useReadingHistory } from "../hooks/queries";
+import {
+  useCapabilities,
+  useEquipmentList,
+  useLatestReading,
+  useReadingHistory,
+} from "../hooks/queries";
+import { BackendRiskPanel } from "../components/BackendRiskPanel";
 import { ErrorState, QueryBoundary, Spinner } from "../components/QueryState";
 import { TelemetryChart } from "../components/TelemetryChart";
 import { AssessmentPanel } from "../components/AssessmentPanel";
@@ -22,6 +28,7 @@ export function EquipmentDetailPage() {
   const equipment = equipmentList.data?.find((e) => e.id === id) ?? null;
   const latest = useLatestReading(validId ? id : null);
   const history = useReadingHistory(validId ? id : null);
+  const caps = useCapabilities();
   const now = useNow();
   useDocumentTitle(equipment ? equipment.name : "Equipment");
 
@@ -94,7 +101,14 @@ export function EquipmentDetailPage() {
           </section>
           <FaultControls equipment={equipment} />
         </div>
-        <AssessmentPanel assessment={assessment} headingLevel={2} />
+        <div className="stack" style={{ gap: "var(--space-4)" }}>
+          {caps.data?.risk ? <BackendRiskPanel equipmentId={equipment.id} /> : null}
+          <AssessmentPanel
+            assessment={assessment}
+            headingLevel={2}
+            title={caps.data?.risk ? "Rule-based Check" : "Incident Assessment"}
+          />
+        </div>
       </div>
     </div>
   );
