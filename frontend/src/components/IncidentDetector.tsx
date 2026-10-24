@@ -10,12 +10,6 @@ import { useNow } from "../lib/clock";
  * Headless per-unit detector. When a unit becomes critical it opens an
  * incident (the store keeps one active incident per unit). The assessment is
  * captured at detection time; the incident page shows the live plan.
- *
- * NOTE: As of the backend risk-detection integration, this is intentionally
- * NOT mounted anywhere. The backend now owns incident creation (detection
- * raises incidents server-side), so creating incidents locally as a side
- * effect of displaying risk would cause duplicates once incident management is
- * connected. This component is kept only as a reference for that later phase.
  */
 export function IncidentDetector({ equipment }: { equipment: EquipmentRead }) {
   const latest = useLatestReading(equipment.id);

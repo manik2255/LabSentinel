@@ -20,36 +20,27 @@ sample-rescue planning system, built for Hackachusetts 2026.
   verification it may be run on another port; the frontend reads the base URL
   from `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`).
 
-## What the backend actually provides (verified via live OpenAPI)
+## What the backend provides (verified 2026-10-24, backend/openapi.json)
 
-Equipment, Sample, Simulation, and Monitoring only. See
-`backend-contract.md` for the exact, verified contract.
+Inventory, simulation, Isolation Forest risk detection, alerts, MILP rescue
+planning, and persistent incidents with approval, atomic execution, recovery,
+closure, and an audit trail. See `backend-contract.md`. There is no
+authentication and no WebSocket/SSE (polling only).
 
-The backend has **no** endpoints for:
+## Frontend modes
 
-- AI incident assessment
-- Rescue planning / sample reallocation
-- Incident lifecycle (acknowledge / resolve / recovery verification)
-- Alerts (an `Alert` ORM model exists but has no router)
-- WebSocket / SSE streaming (monitoring is polling-only)
+The frontend reads `/openapi.json` (`getCapabilities`) and:
 
-## Frontend-derived domain logic (explicitly labeled)
+- **Backend mode**: shows backend risk, incidents, plans, and actions. All
+  incident state comes from backend responses. Browser-side incident detection
+  is off, so there are no duplicate incidents.
+- **Fallback mode** (no incident API): browser rule-based assessment, greedy
+  planner, and localStorage incidents, each labeled "derived locally".
 
-Because those capabilities are not in the backend yet, the frontend implements
-them as **clearly labeled client-side domain logic** over the real primitives
-the backend does expose (equipment temperature ranges, derived capacity, sample
-priority, and sensor-reading history):
-
-- Fault detection — derived from latest readings vs. equipment range + status.
-- Explainable assessment — rule-based evidence panels (no black-box ML).
-- Rescue planning — a client-side allocator that honours the same temperature
-  and capacity rules the backend enforces on `POST/PATCH /api/samples`.
-- Incident lifecycle — tracked in client state (and optionally persisted) until
-  a backend owns it.
-
-Every such feature must carry a visible "derived locally" indicator so a
-reviewer is never misled about where the logic lives. When a real backend
-endpoint arrives, the adapter layer is the single place to switch over.
+Rules: never show an action as done before the backend confirms it; label the
+anomaly score as a relative outlier score, not a probability; recovery is an
+operational confirmation, not sample viability; approve/execute only plans
+whose source and destinations are demo units (`src/domain/demoScope.ts`).
 
 ## Engineering standards
 

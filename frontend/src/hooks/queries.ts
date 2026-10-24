@@ -14,7 +14,6 @@ import * as api from "../api/endpoints";
 import type {
   EquipmentModeRequest,
   EquipmentRead,
-  RiskResponse,
   SampleRead,
   SampleUpdate,
   SensorReadingRead,
@@ -30,7 +29,6 @@ export const queryKeys = {
   latest: (id: number) => ["latest", id] as const,
   history: (id: number, limit: number) => ["history", id, limit] as const,
   simStatus: ["simStatus"] as const,
-  risk: (id: number) => ["risk", id] as const,
 };
 
 export function useHealth(): UseQueryResult<{ status: string; service: string }> {
@@ -107,23 +105,6 @@ export function useSimulationStatus(): UseQueryResult<SimulationStatus> {
   });
 }
 
-/**
- * Backend anomaly-risk assessment for one equipment (Isolation Forest +
- * explainable rules). Read-only: never passes raise_alert, so displaying risk
- * cannot create alerts or incidents server-side. Polls with the latest reading
- * so the shown risk tracks fresh telemetry.
- */
-export function useEquipmentRisk(
-  id: number | null,
-): UseQueryResult<RiskResponse> {
-  return useQuery({
-    queryKey: queryKeys.risk(id ?? -1),
-    queryFn: () => api.getEquipmentRisk(id as number),
-    enabled: id != null,
-    refetchInterval: POLL.latestReading,
-  });
-}
-
 // --- Mutations ---
 
 export function useSimulationControls() {
@@ -173,5 +154,81 @@ export function useSampleMove() {
       void qc.invalidateQueries({ queryKey: queryKeys.equipment });
       void qc.invalidateQueries({ queryKey: ["samples"] });
     },
+  });
+}
+
+// --- Backend detection and incident lifecycle ---
+
+export const backendKeys = {
+  capabilities: ["capabilities"] as const,
+  risk: (id: number) => ["risk", id] as const,
+  incidents: ["backendIncidents"] as const,
+  incident: (id: number) => ["backendIncident", id] as const,
+  events: (id: number) => ["backendIncidentEvents", id] as const,
+  plan: (id: number, planId: number | null) => ["backendIncidentPlan", id, planId] as const,
+  execution: (id: number, execId: number | null) =>
+    ["backendIncidentExecution", id, execId] as const,
+};
+
+/** Which backend features exist, read once from the live OpenAPI document. */
+export function useCapabilities() {
+  return useQuery({
+    queryKey: backendKeys.capabilities,
+    queryFn: api.getCapabilities,
+    staleTime: Infinity,
+    retry: 2,
+  });
+}
+
+export function useRisk(id: number | null, enabled: boolean) {
+  return useQuery({
+    queryKey: backendKeys.risk(id ?? -1),
+    queryFn: () => api.getRisk(id as number),
+    enabled: enabled && id != null,
+    refetchInterval: POLL.latestReading,
+  });
+}
+
+export function useBackendIncidents(enabled: boolean) {
+  return useQuery({
+    queryKey: backendKeys.incidents,
+    queryFn: () => api.listIncidents(200),
+    enabled,
+    refetchInterval: POLL.latestReading,
+  });
+}
+
+export function useBackendIncident(id: number) {
+  return useQuery({
+    queryKey: backendKeys.incident(id),
+    queryFn: () => api.getIncident(id),
+    refetchInterval: (q) => (q.state.data?.closed ? false : POLL.latestReading),
+  });
+}
+
+export function useIncidentEvents(id: number, live: boolean) {
+  return useQuery({
+    queryKey: backendKeys.events(id),
+    queryFn: () => api.listIncidentEvents(id),
+    refetchInterval: live ? POLL.history : false,
+  });
+}
+
+/** A stored plan is immutable per plan id, so it is fetched once. */
+export function useIncidentPlan(id: number, planId: number | null) {
+  return useQuery({
+    queryKey: backendKeys.plan(id, planId),
+    queryFn: () => api.getIncidentPlan(id),
+    enabled: planId != null,
+    staleTime: Infinity,
+  });
+}
+
+export function useIncidentExecution(id: number, execId: number | null) {
+  return useQuery({
+    queryKey: backendKeys.execution(id, execId),
+    queryFn: () => api.getIncidentExecution(id),
+    enabled: execId != null,
+    staleTime: Infinity,
   });
 }

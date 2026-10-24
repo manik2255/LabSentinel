@@ -1,15 +1,16 @@
 import { Link, useParams } from "react-router-dom";
 import {
+  useCapabilities,
   useEquipmentList,
-  useEquipmentRisk,
   useLatestReading,
   useReadingHistory,
 } from "../hooks/queries";
+import { BackendRiskPanel } from "../components/BackendRiskPanel";
 import { ErrorState, QueryBoundary, Spinner } from "../components/QueryState";
 import { TelemetryChart } from "../components/TelemetryChart";
-import { RiskPanel } from "../components/RiskPanel";
+import { AssessmentPanel } from "../components/AssessmentPanel";
 import { FaultControls } from "../components/FaultControls";
-import { HealthBadge, SeverityBadge } from "../components/SeverityBadge";
+import { HealthBadge } from "../components/SeverityBadge";
 import { classifyEquipment } from "../domain/detection";
 import { assessIncident } from "../domain/assessment";
 import { isDemoEquipment } from "../domain/demoScope";
@@ -27,7 +28,7 @@ export function EquipmentDetailPage() {
   const equipment = equipmentList.data?.find((e) => e.id === id) ?? null;
   const latest = useLatestReading(validId ? id : null);
   const history = useReadingHistory(validId ? id : null);
-  const risk = useEquipmentRisk(validId ? id : null);
+  const caps = useCapabilities();
   const now = useNow();
   useDocumentTitle(equipment ? equipment.name : "Equipment");
 
@@ -58,10 +59,6 @@ export function EquipmentDetailPage() {
     now,
   });
   const hasReading = reading != null && reading !== NO_READINGS_YET;
-  // Header badge prefers the backend risk level; it falls back to the local
-  // health classification only until the backend risk has loaded (or if it
-  // fails), and that fallback is never presented as the backend result.
-  const backendRisk = risk.data ?? null;
 
   return (
     <div>
@@ -69,14 +66,7 @@ export function EquipmentDetailPage() {
         <div>
           <div className="row" style={{ gap: "var(--space-3)", flexWrap: "wrap" }}>
             <h1 className="page-title">{equipment.name}</h1>
-            {backendRisk ? (
-              <SeverityBadge
-                level={riskBadgeLevel(backendRisk.risk_level)}
-                label={`${riskBadgeLabel(backendRisk.risk_level)} (backend)`}
-              />
-            ) : (
-              <HealthBadge health={classification.health} isStale={classification.isStale} />
-            )}
+            <HealthBadge health={classification.health} isStale={classification.isStale} />
             {isDemoEquipment(equipment) ? <span className="derived-tag">demo unit</span> : null}
           </div>
           <p className="page-subtitle">
@@ -111,40 +101,15 @@ export function EquipmentDetailPage() {
           </section>
           <FaultControls equipment={equipment} />
         </div>
-        <RiskPanel query={risk} localFallback={assessment} headingLevel={2} />
+        <div className="stack" style={{ gap: "var(--space-4)" }}>
+          {caps.data?.risk ? <BackendRiskPanel equipmentId={equipment.id} /> : null}
+          <AssessmentPanel
+            assessment={assessment}
+            headingLevel={2}
+            title={caps.data?.risk ? "Rule-based Check" : "Incident Assessment"}
+          />
+        </div>
       </div>
     </div>
   );
-}
-
-/** Map a backend risk level to a shared SeverityBadge level. */
-function riskBadgeLevel(
-  riskLevel: string,
-): "ok" | "info" | "warning" | "critical" {
-  switch (riskLevel) {
-    case "low":
-      return "ok";
-    case "medium":
-    case "high":
-      return "warning";
-    case "critical":
-      return "critical";
-    default:
-      return "info";
-  }
-}
-
-function riskBadgeLabel(riskLevel: string): string {
-  switch (riskLevel) {
-    case "low":
-      return "Low risk";
-    case "medium":
-      return "Medium risk";
-    case "high":
-      return "High risk";
-    case "critical":
-      return "Critical risk";
-    default:
-      return `${riskLevel} risk`;
-  }
 }

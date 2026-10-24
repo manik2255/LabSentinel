@@ -5,24 +5,17 @@
 
 import { apiFetch, ApiError, NO_READINGS_YET, type NoReadingsYet } from "./client";
 import type {
-  AlertRead,
+  BackendCapabilities,
+  BackendRescuePlan,
   EquipmentCreate,
   EquipmentModeRequest,
   EquipmentRead,
   EquipmentUpdate,
-  IncidentActionRequest,
-  IncidentCloseRequest,
   IncidentDetail,
   IncidentEventRead,
-  IncidentReport,
   IncidentSummary,
-  PlanApprovalRequest,
-  PlanRejectionRequest,
-  RecoveryRequest,
-  RescueExecutionResponse,
-  RescuePlanRequest,
-  RescuePlanResponse,
-  RescuePlanSummary,
+  RecoveryOutcome,
+  RescueExecution,
   RiskResponse,
   SampleCreate,
   SampleRead,
@@ -209,178 +202,90 @@ export async function getReadingHistory(
 }
 
 // ---------------------------------------------------------------------------
-// Detection / risk
+// Backend capabilities, ML risk, and incident lifecycle
 // ---------------------------------------------------------------------------
+
+const RISK_PATH = "/api/detection/equipment/{equipment_id}/risk";
+const INCIDENT_PATHS = [
+  "/api/incidents",
+  "/api/incidents/{incident_id}/plan/approve",
+  "/api/incidents/{incident_id}/plan/execute",
+  "/api/incidents/{incident_id}/recovery",
+  "/api/incidents/{incident_id}/close",
+];
 
 /**
- * Current anomaly-risk assessment for a piece of equipment, computed by the
- * backend (Isolation Forest + explainable rules).
- *
- * Read-only by default. `raiseAlert` maps to the backend `?raise_alert=` query
- * flag, which additionally creates/refreshes an alert and may open an incident
- * server-side — the risk display must NOT set this, so it defaults to false.
+ * Reads the backend's live OpenAPI document to decide which features exist,
+ * so the console uses backend-authoritative incidents when they are available
+ * and falls back to its labeled browser-only workflow when they are not.
  */
-export function getEquipmentRisk(
-  equipmentId: number,
-  options: { raiseAlert?: boolean } = {},
-): Promise<RiskResponse> {
-  const q = options.raiseAlert ? "?raise_alert=true" : "";
-  return apiFetch(`/api/detection/equipment/${equipmentId}/risk${q}`);
+export async function getCapabilities(): Promise<BackendCapabilities> {
+  const doc = await apiFetch<{ paths?: Record<string, unknown> } | undefined>("/openapi.json");
+  const paths = doc?.paths ?? {};
+  const has = (p: string) => Object.prototype.hasOwnProperty.call(paths, p);
+  return { risk: has(RISK_PATH), incidents: INCIDENT_PATHS.every(has) };
 }
 
-// ---------------------------------------------------------------------------
-// Alerts (prepared; no UI consumes these yet)
-// ---------------------------------------------------------------------------
-export function listActiveAlerts(equipmentId?: number): Promise<AlertRead[]> {
-  const q = equipmentId != null ? `?equipment_id=${equipmentId}` : "";
-  return apiFetch(`/api/detection/alerts${q}`);
+/** Read-only risk assessment (raise_alert=false): never creates alerts or incidents. */
+export function getRisk(equipmentId: number): Promise<RiskResponse> {
+  return apiFetch(`/api/detection/equipment/${equipmentId}/risk`);
 }
 
-export function listAlertHistory(
-  equipmentId?: number,
-  limit = 100,
-): Promise<AlertRead[]> {
-  const params = new URLSearchParams();
-  if (equipmentId != null) params.set("equipment_id", String(equipmentId));
-  params.set("limit", String(limit));
-  return apiFetch(`/api/detection/alerts/history?${params.toString()}`);
+export function listIncidents(limit = 200): Promise<IncidentSummary[]> {
+  return apiFetch(`/api/incidents?limit=${limit}`);
 }
 
-export function resolveAlert(alertId: number): Promise<AlertRead> {
-  return apiFetch(`/api/detection/alerts/${alertId}/resolve`, { method: "POST" });
+export function getIncident(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}`);
 }
 
-// ---------------------------------------------------------------------------
-// Rescue planning (prepared; the rescue feature still uses local domain logic)
-// ---------------------------------------------------------------------------
-export function generateRescuePlan(
-  payload?: RescuePlanRequest,
-): Promise<RescuePlanResponse> {
-  return apiFetch("/api/rescue/plan", { method: "POST", body: payload ?? {} });
+export function listIncidentEvents(id: number): Promise<IncidentEventRead[]> {
+  return apiFetch(`/api/incidents/${id}/events`);
 }
 
-export function listRescuePlans(limit = 50): Promise<RescuePlanSummary[]> {
-  return apiFetch(`/api/rescue/plans?limit=${limit}`);
+export function acknowledgeIncident(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/acknowledge`, { method: "POST", body: {} });
 }
 
-export function getRescuePlan(planId: number): Promise<RescuePlanResponse> {
-  return apiFetch(`/api/rescue/plans/${planId}`);
+/** Runs the backend MILP optimizer. Read-only with respect to inventory. */
+export function generateIncidentPlan(id: number): Promise<BackendRescuePlan> {
+  return apiFetch(`/api/incidents/${id}/plan`, { method: "POST" });
 }
 
-// ---------------------------------------------------------------------------
-// Incidents (prepared; incident management still uses the local store)
-// ---------------------------------------------------------------------------
-export function listIncidents(params: {
-  equipmentId?: number;
-  status?: string;
-  activeOnly?: boolean;
-  limit?: number;
-} = {}): Promise<IncidentSummary[]> {
-  const q = new URLSearchParams();
-  if (params.equipmentId != null) q.set("equipment_id", String(params.equipmentId));
-  if (params.status != null) q.set("status", params.status);
-  if (params.activeOnly) q.set("active_only", "true");
-  if (params.limit != null) q.set("limit", String(params.limit));
-  const qs = q.toString();
-  return apiFetch(`/api/incidents${qs ? `?${qs}` : ""}`);
-}
-
-export function getIncident(incidentId: number): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}`);
-}
-
-export function getIncidentEvents(
-  incidentId: number,
-): Promise<IncidentEventRead[]> {
-  return apiFetch(`/api/incidents/${incidentId}/events`);
-}
-
-export function getIncidentReport(incidentId: number): Promise<IncidentReport> {
-  return apiFetch(`/api/incidents/${incidentId}/report`);
-}
-
-export function acknowledgeIncident(
-  incidentId: number,
-  payload?: IncidentActionRequest,
-): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}/acknowledge`, {
-    method: "POST",
-    body: payload ?? {},
-  });
-}
-
-export function escalateIncident(
-  incidentId: number,
-  payload?: IncidentActionRequest,
-): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}/escalate`, {
-    method: "POST",
-    body: payload ?? {},
-  });
-}
-
-export function generateIncidentPlan(
-  incidentId: number,
-): Promise<RescuePlanResponse> {
-  return apiFetch(`/api/incidents/${incidentId}/plan`, { method: "POST" });
-}
-
-export function getIncidentPlan(
-  incidentId: number,
-): Promise<RescuePlanResponse> {
-  return apiFetch(`/api/incidents/${incidentId}/plan`);
+export function getIncidentPlan(id: number): Promise<BackendRescuePlan> {
+  return apiFetch(`/api/incidents/${id}/plan`);
 }
 
 export function approveIncidentPlan(
-  incidentId: number,
-  payload?: PlanApprovalRequest,
+  id: number,
+  acknowledgeUnrescued: boolean,
 ): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}/plan/approve`, {
+  return apiFetch(`/api/incidents/${id}/plan/approve`, {
     method: "POST",
-    body: payload ?? {},
+    body: { acknowledge_unrescued: acknowledgeUnrescued },
   });
 }
 
-export function rejectIncidentPlan(
-  incidentId: number,
-  payload?: PlanRejectionRequest,
-): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}/plan/reject`, {
-    method: "POST",
-    body: payload ?? {},
-  });
+export function rejectIncidentPlan(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/plan/reject`, { method: "POST", body: {} });
 }
 
-export function executeIncidentPlan(
-  incidentId: number,
-): Promise<RescueExecutionResponse> {
-  return apiFetch(`/api/incidents/${incidentId}/plan/execute`, {
-    method: "POST",
-  });
+/** Backend revalidates and moves all approved samples in one transaction, or none. */
+export function executeIncidentPlan(id: number): Promise<RescueExecution> {
+  return apiFetch(`/api/incidents/${id}/plan/execute`, { method: "POST" });
 }
 
-export function getIncidentExecution(
-  incidentId: number,
-): Promise<RescueExecutionResponse> {
-  return apiFetch(`/api/incidents/${incidentId}/plan/execution`);
+export function getIncidentExecution(id: number): Promise<RescueExecution> {
+  return apiFetch(`/api/incidents/${id}/plan/execution`);
 }
 
 export function recordIncidentRecovery(
-  incidentId: number,
-  payload: RecoveryRequest,
+  id: number,
+  body: { outcome: RecoveryOutcome; notes?: string; unrescued_acknowledged: boolean },
 ): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}/recovery`, {
-    method: "POST",
-    body: payload,
-  });
+  return apiFetch(`/api/incidents/${id}/recovery`, { method: "POST", body });
 }
 
-export function closeIncident(
-  incidentId: number,
-  payload?: IncidentCloseRequest,
-): Promise<IncidentDetail> {
-  return apiFetch(`/api/incidents/${incidentId}/close`, {
-    method: "POST",
-    body: payload ?? {},
-  });
+export function closeIncident(id: number): Promise<IncidentDetail> {
+  return apiFetch(`/api/incidents/${id}/close`, { method: "POST", body: { confirm: true } });
 }

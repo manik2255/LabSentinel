@@ -440,9 +440,10 @@
 .step-failed .step-icon {
   color: var(--critical);
 }
+/* Pending steps use a dashed border, not opacity, so text keeps AA contrast. */
 .step-pending,
 .step-skipped {
-  opacity: 0.8;
+  border-style: dashed;
 }
 .next-step {
   padding: var(--space-3);
@@ -622,4 +623,45 @@
   .allocation-row > div {
     text-align: left !important;
   }
+}
+
+/* Backend workflow form controls */
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  min-height: 24px;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+}
+.outcome {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.outcome legend {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  padding: 0 var(--space-1);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-sm);
+}
+.field input {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
 }
