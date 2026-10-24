@@ -3,7 +3,7 @@ inclusion: fileMatch
 fileMatchPattern: 'frontend/src/api/**'
 ---
 
-# Backend Contract (verified 2026-10-24 against backend/openapi.json, 31 paths)
+# Backend Contract (verified 2026-10-24 against backend/openapi.json, 32 paths)
 
 Errors are `{ "detail": string }` (404 not found, 409 conflict/state, 422
 validation). Timestamps are naive ISO strings recorded in UTC (SQLite drops the
@@ -41,6 +41,7 @@ offset); the frontend normalizes them in `src/api/endpoints.ts`.
 - `POST /recovery` (`outcome`: completed/partial/unresolved; `completed` refused
   when samples were left unrescued; requires a recorded execution)
 - `POST /close` (`confirm: true`; requires recovery; unrescued samples must be acknowledged)
+- `GET /api/incidents/{id}/report` — read-only aggregated report (not used by the UI)
 - Flags on `IncidentDetail`: `approval_recorded`, `execution_recorded`,
   `recovery_recorded`, `closed` — the UI derives every step from these.
 - One active incident per equipment. After closure, a still-abnormal unit gets a

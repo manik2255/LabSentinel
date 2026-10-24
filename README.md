@@ -41,6 +41,9 @@ npm install
 npm run dev        # http://127.0.0.1:5173 (VITE_API_BASE_URL defaults to :8000)
 ```
 
+If port 8000 is taken, run the backend on another port and set
+`VITE_API_BASE_URL` in `frontend/.env` to match (see `frontend/.env.example`).
+
 In the console: **Set up demo** → open *Ultra-Low Freezer A* → switch on
 **Hardware failure** → **Incidents** → Acknowledge → Generate rescue plan →
 Approve → Execute → Record recovery → Clear simulated fault → Close.
@@ -71,4 +74,5 @@ node scripts/verify-e2e.mjs               # HTTP workflow; own backend on :8079 
 - Telemetry is simulated; no sensor integration.
 - Closing an incident while a unit's recent readings are still abnormal lets the
   backend open a new incident on the next reading. The console warns about this.
-- Escalation and alert resolution exist in the API but are not exposed in the UI.
+- Escalation, alert resolution, and the read-only incident report
+  (`GET /api/incidents/{id}/report`) exist in the API but are not exposed in the UI.
