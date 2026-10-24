@@ -6,7 +6,7 @@ incubator) that stores samples and is monitored by sensors.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,7 +20,15 @@ if TYPE_CHECKING:
 
 
 class Equipment(Base):
-    """A monitored piece of lab equipment."""
+    """A monitored piece of lab equipment.
+
+    Capacity is tracked along two independent dimensions:
+
+    * ``storage_capacity`` - total storage space available. Each sample
+      consumes ``storage_space`` units of this.
+    * ``sample_limit`` - optional cap on the *number* of samples. Each
+      sample takes exactly one slot. ``None`` means unlimited slots.
+    """
 
     __tablename__ = "equipment"
 
@@ -33,8 +41,11 @@ class Equipment(Base):
     min_temperature: Mapped[float] = mapped_column(Float, nullable=False)
     max_temperature: Mapped[float] = mapped_column(Float, nullable=False)
 
-    # Total storage capacity (number of storage units/slots).
-    capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Total storage space available (abstract storage units).
+    storage_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Optional maximum number of samples (slots). None => unlimited.
+    sample_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     # Operational status, e.g. "operational", "maintenance", "offline".
     status: Mapped[str] = mapped_column(String, nullable=False, default="operational")
@@ -55,6 +66,31 @@ class Equipment(Base):
         back_populates="equipment",
         cascade="all, delete-orphan",
     )
+
+    # ------------------------------------------------------------------
+    # Derived capacity helpers
+    # ------------------------------------------------------------------
+    @property
+    def used_storage(self) -> int:
+        """Total storage space consumed by currently assigned samples."""
+        return sum(s.storage_space for s in self.samples)
+
+    @property
+    def available_storage(self) -> int:
+        """Remaining storage space."""
+        return self.storage_capacity - self.used_storage
+
+    @property
+    def used_slots(self) -> int:
+        """Number of samples currently assigned (one slot each)."""
+        return len(self.samples)
+
+    @property
+    def available_slots(self) -> Optional[int]:
+        """Remaining sample slots, or ``None`` when ``sample_limit`` is unset."""
+        if self.sample_limit is None:
+            return None
+        return self.sample_limit - self.used_slots
 
     def __repr__(self) -> str:  # pragma: no cover - convenience only
         return f"<Equipment id={self.id} name={self.name!r} status={self.status!r}>"

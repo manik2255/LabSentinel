@@ -6,10 +6,14 @@ database tables on startup, and exposes a health check endpoint.
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from app.crud.exceptions import DomainError
 from app.database import create_all_tables
+from app.routers import equipment as equipment_router
+from app.routers import sample as sample_router
 
 
 @asynccontextmanager
@@ -46,6 +50,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(_request: Request, exc: DomainError) -> JSONResponse:
+    """Translate domain/business-rule errors into HTTP responses."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message},
+    )
+
+
+# Feature routers
+app.include_router(equipment_router.router)
+app.include_router(sample_router.router)
 
 
 @app.get("/api/health", tags=["health"])

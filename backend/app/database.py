@@ -4,13 +4,15 @@ Uses SQLite via SQLAlchemy. The engine, session factory, and Base defined
 here are shared across the application and model modules.
 """
 
+import os
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-# SQLite database stored alongside the backend package.
-SQLALCHEMY_DATABASE_URL = "sqlite:///./labsentinel.db"
+# SQLite database stored alongside the backend package. Overridable via the
+# DATABASE_URL environment variable (useful for tests / alternate configs).
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./labsentinel.db")
 
 # check_same_thread is required for SQLite when used with multiple threads
 # (as FastAPI/uvicorn does by default).
